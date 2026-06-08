@@ -1,0 +1,13 @@
+{
+  "services": [
+    { "name": "immich", "status": "up", "uptime": "99.9%" },
+    { "name": "jellyfin", "status": "up", "uptime": "99.8%" },
+    { "name": "jellyseerr", "status": "up", "uptime": "100%" },
+    { "name": "radarr", "status": "up", "uptime": "99.5%" },
+    { "name": "sonarr", "status": "up", "uptime": "99.5%" },
+    { "name": "jackett", "status": "up", "uptime": "100%" },
+    { "name": "qbittorrent", "status": "up", "uptime": "100%" },
+    { "name": "nextcloud", "status": "down", "uptime": "97.2%" }
+  ],
+  "last_checked": "2026-06-08T14:32:00Z"
+}
