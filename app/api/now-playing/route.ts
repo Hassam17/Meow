@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
+import { getNowPlaying } from "@/lib/spotify";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({ error: "not implemented yet — see Phase 2" }, { status: 501 });
+  try {
+    const data = await getNowPlaying();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("now-playing route error:", error);
+    return NextResponse.json({ error: "failed to fetch now playing" }, { status: 502 });
+  }
 }
