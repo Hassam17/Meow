@@ -1,0 +1,9 @@
+services:
+  nutmagcard:
+    build: .
+    container_name: nutmagcard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local          # real secrets — never baked into the image

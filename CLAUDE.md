@@ -129,19 +129,33 @@ Polling interval: 30s for Now Playing, 60s for everything else.
 > 4. Build homelab status endpoint on server + proxy route
 > 5. Wire up all data, confirm everything returns correctly
 > 6. Apply full aesthetic — layout, colors, fonts, animations, grain
-> 7. Deploy to Vercel
+> 7. Deploy via Docker + Tailscale (see Phase 8 below)
 
 ---
 
 ## Environment Variables Needed
 ```
-LASTFM_API_KEY=
-LASTFM_USERNAME=
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+SPOTIFY_REFRESH_TOKEN=
 STEAM_API_KEY=
-STEAM_PROFILE_ID=
+STEAM_PROFILE_ID=76561199044933923
 HOMELAB_STATUS_URL=
-GITHUB_TOKEN=           # optional, for latest commit
+GITHUB_TOKEN=           # optional
 ```
+
+## Deploy — Docker + Tailscale
+
+```bash
+# On the homelab machine, in this repo:
+docker compose up -d --build
+
+# Expose over Tailscale HTTPS (no domain, no cert config needed):
+tailscale serve https / http://localhost:3000
+# → reachable at https://nutmagcard.<tailnet>.ts.net from any tailnet device
+```
+
+Secrets are passed at runtime via `env_file: .env.local` — they are never baked into the image layer.
 
 ---
 
