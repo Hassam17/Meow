@@ -8,6 +8,7 @@
   --accent-warm: #e8dfc8;
   --text-primary: #f0f0f0;
   --text-muted: #555560;
+  --grain-opacity: 0.04;
 }
 
 @theme inline {
@@ -22,8 +23,110 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
+/* ─── base ─────────────────────────────────────────────────── */
+
+html,
+body {
+  height: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-jetbrains-mono), monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ─── grain overlay ─────────────────────────────────────────── */
+
+@keyframes grain {
+  0%   { transform: translate(0,    0);    }
+  11%  { transform: translate(-2%,  -1%);  }
+  22%  { transform: translate(1%,   2%);   }
+  33%  { transform: translate(-1%,  -2%);  }
+  44%  { transform: translate(2%,   1%);   }
+  55%  { transform: translate(-2%,  2%);   }
+  66%  { transform: translate(1%,   -1%);  }
+  77%  { transform: translate(-1%,  2%);   }
+  88%  { transform: translate(2%,   -2%);  }
+  100% { transform: translate(-2%,  1%);   }
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -100px;
+  width: calc(100% + 200px);
+  height: calc(100% + 200px);
+  background-image: url('/grain.svg');
+  background-size: 200px 200px;
+  opacity: var(--grain-opacity);
+  animation: grain 0.4s steps(1) infinite;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── CRT scanlines ─────────────────────────────────────────── */
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.022) 2px,
+    rgba(0, 0, 0, 0.022) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ─── surface panels ────────────────────────────────────────── */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  padding: 1rem 1.25rem;
+}
+
+.panel-warm {
+  background: var(--surface);
+  border: 1px solid var(--accent-warm);
+  border-radius: 2px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 0 20px rgba(232, 223, 200, 0.04);
+}
+
+/* ─── section label ─────────────────────────────────────────── */
+
+.label {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+/* ─── phosphor glow on live elements ─────────────────────────── */
+
+@keyframes phosphor-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px 1px currentColor;
+    opacity: 0.75;
+  }
+  50% {
+    box-shadow: 0 0 12px 4px currentColor;
+    opacity: 1;
+  }
+}
+
+.live-dot {
+  animation: phosphor-pulse 2s ease-in-out infinite;
 }
