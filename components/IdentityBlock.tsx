@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { NutMagLogo } from "@/components/NutMagLogo";
 
 const PROJECT_EPOCH = new Date("2026-06-08T00:00:00Z").getTime();
 
@@ -32,6 +33,7 @@ export function IdentityBlock() {
   return (
     <section className="space-y-3">
       <div>
+        <NutMagLogo className="mb-3 h-5 w-auto" />
         <p className="label">// identity</p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wider text-[var(--accent-orange)]"
           style={{ textShadow: "0 0 20px rgba(255,107,43,0.4)" }}
