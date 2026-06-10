@@ -9,6 +9,7 @@ export type CurrentlyPlaying = {
   recentPlaytimeMinutes: number;
   hoursTotal: number;
   lastPlayedTimestamp: number;
+  recentlyPlayed: { gameName: string; hoursTotal: number }[];
 } | null;
 
 type SteamOwnedGame = {
@@ -22,7 +23,9 @@ type SteamOwnedGame = {
 
 type SteamRecentGame = {
   appid: number;
+  name: string;
   playtime_2weeks: number;
+  playtime_forever: number;
 };
 
 function iconUrl(appid: number, imgIconUrl: string): string | null {
@@ -77,12 +80,21 @@ export async function getCurrentlyPlaying(): Promise<CurrentlyPlaying> {
   const sorted = [...owned].sort((a, b) => b.rtime_last_played - a.rtime_last_played);
   const top = sorted[0];
 
+  const recentlyPlayed = (recentData.response.games ?? [])
+    .filter((g) => g.appid !== top.appid)
+    .slice(0, 3)
+    .map((g) => ({
+      gameName: g.name,
+      hoursTotal: Math.round((g.playtime_forever / 60) * 10) / 10,
+    }));
+
   const data: CurrentlyPlaying = {
     gameName: top.name,
     iconUrl: iconUrl(top.appid, top.img_icon_url),
     recentPlaytimeMinutes: recentMap.get(top.appid) ?? top.playtime_2weeks ?? 0,
     hoursTotal: Math.round(top.playtime_forever / 60 * 10) / 10,
     lastPlayedTimestamp: top.rtime_last_played,
+    recentlyPlayed,
   };
 
   cache = { data, expiresAt: Date.now() + CACHE_TTL_MS };

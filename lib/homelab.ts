@@ -14,6 +14,14 @@ export type HomelabStatus = {
   last_checked: string;
 } | null;
 
+export function averageUptime(services: ServiceStatus[]): string | null {
+  const values = services.map((s) => parseFloat(s.uptime)).filter((n) => !Number.isNaN(n));
+  if (values.length === 0) return null;
+
+  const avg = values.reduce((sum, n) => sum + n, 0) / values.length;
+  return `${avg.toFixed(1)}%`;
+}
+
 // ─── v2 shape (future homelab aggregator — design-only, not yet built) ─
 // The aggregator is a separate project running ON the homelab that queries
 // all 8 services internally and returns one unified blob.

@@ -1,29 +1,50 @@
 @import "tailwindcss";
 
+/* ─── design tokens ────────────────────────────────────────────────
+   "Chunky Blocks + Accent Border" — see DESIGN_VARIATIONS.md
+   Dark is the default; [data-theme="light"] overrides below.
+──────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #0d0d0f;
-  --surface: #141416;
+  --bg-page: #13100c;
+  --bg-card: #1e1a14;
+  --bg-nested: #1a1610;
+  --border: #3d3220;
+  --shadow: #070604;
+  --text-primary: #e8dfc8;
+  --text-muted: #4a4030;
+  --text-muted-dim: #3a3020;
   --accent-orange: #ff6b2b;
-  --accent-cyan: #00e5ff;
+  --accent-cyan: #00b4c8;
   --accent-warm: #e8dfc8;
-  --text-primary: #f0f0f0;
-  --text-muted: #555560;
-  --grain-opacity: 0.04;
+  --badge-text: #13100c;
+  --status-up: #1c6b30;
+  --status-down: #c84a12;
+}
+
+[data-theme="light"] {
+  --bg-page: #d8cfbc;
+  --bg-card: #f5f0e6;
+  --bg-nested: #faf6f0;
+  --border: #7a6a52;
+  --shadow: #a89878;
+  --text-primary: #1c1810;
+  --text-muted: #9a8870;
+  --text-muted-dim: #b0a090;
+  --accent-orange: #e05a18;
+  --accent-cyan: #00768a;
+  --accent-warm: #1c1810;
+  --badge-text: #f5f0e6;
+  --status-up: #1a5e28;
+  --status-down: #c84a12;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-accent-orange: var(--accent-orange);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-warm: var(--accent-warm);
-  --color-text-primary: var(--text-primary);
-  --color-text-muted: var(--text-muted);
   --font-display: var(--font-dot-gothic);
   --font-mono: var(--font-jetbrains-mono);
 }
 
-/* ─── base ─────────────────────────────────────────────────── */
+/* ─── base ───────────────────────────────────────────────────── */
 
 html,
 body {
@@ -31,102 +52,312 @@ body {
 }
 
 body {
-  background: var(--background);
+  background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-jetbrains-mono), monospace;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* ─── grain overlay ─────────────────────────────────────────── */
+/* ─── namecard ───────────────────────────────────────────────── */
 
-@keyframes grain {
-  0%   { transform: translate(0,    0);    }
-  11%  { transform: translate(-2%,  -1%);  }
-  22%  { transform: translate(1%,   2%);   }
-  33%  { transform: translate(-1%,  -2%);  }
-  44%  { transform: translate(2%,   1%);   }
-  55%  { transform: translate(-2%,  2%);   }
-  66%  { transform: translate(1%,   -1%);  }
-  77%  { transform: translate(-1%,  2%);   }
-  88%  { transform: translate(2%,   -2%);  }
-  100% { transform: translate(-2%,  1%);   }
+.namecard {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1.5px solid var(--border);
+  box-shadow: 3px 3px 0 var(--shadow);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: -100px;
-  width: calc(100% + 200px);
-  height: calc(100% + 200px);
-  background-image: url('/grain.svg');
-  background-size: 200px 200px;
-  opacity: var(--grain-opacity);
-  animation: grain 0.4s steps(1) infinite;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* ─── CRT scanlines ─────────────────────────────────────────── */
-
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.022) 2px,
-    rgba(0, 0, 0, 0.022) 4px
-  );
-  pointer-events: none;
-  z-index: 9998;
-}
-
-/* ─── surface panels ────────────────────────────────────────── */
-
-.panel {
-  background: var(--surface);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 2px;
-  padding: 1rem 1.25rem;
-}
-
-.panel-warm {
-  background: var(--surface);
-  border: 1px solid var(--accent-warm);
-  border-radius: 2px;
-  padding: 1rem 1.25rem;
-  box-shadow: 0 0 20px rgba(232, 223, 200, 0.04);
-}
-
-/* ─── section label ─────────────────────────────────────────── */
-
-.label {
+.namecard-logo {
   font-family: var(--font-dot-gothic), monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
+  font-size: 1.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
 }
 
-/* ─── phosphor glow on live elements ─────────────────────────── */
+.namecard-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
 
-@keyframes phosphor-pulse {
-  0%, 100% {
-    box-shadow: 0 0 4px 1px currentColor;
-    opacity: 0.75;
-  }
-  50% {
-    box-shadow: 0 0 12px 4px currentColor;
-    opacity: 1;
-  }
+.namecard-sub a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.namecard-sub a:hover {
+  color: var(--accent-orange);
+}
+
+.namecard-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.namecard-tagline {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ─── live badge ─────────────────────────────────────────────── */
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: var(--accent-orange);
+  color: var(--badge-text);
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .live-dot {
-  animation: phosphor-pulse 2s ease-in-out infinite;
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* ─── theme toggle ───────────────────────────────────────────── */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+/* ─── pairs + blocks ("sticker" cards) ──────────────────────────── */
+
+.pair {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.block {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  box-shadow: 3px 3px 0 var(--shadow);
+  cursor: pointer;
+  overflow: hidden;
+  transition: flex-grow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease,
+    box-shadow 0.25s ease, background-color 0.3s ease;
+}
+
+.block.accent-left {
+  border-left: 3px solid var(--accent-orange);
+}
+
+.block:hover {
+  border-color: var(--accent-orange);
+  box-shadow: 5px 5px 0 var(--shadow);
+}
+
+.pair .block {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0%;
+  min-width: 0;
+}
+
+.pair:hover .block {
+  flex-grow: 0.65;
+}
+
+.pair .block:hover {
+  flex-grow: 2.5;
+}
+
+/* ─── block typography ───────────────────────────────────────── */
+
+.block-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.block-value {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block-value.accent {
+  color: var(--accent-orange);
+}
+
+.block-value.teal {
+  color: var(--accent-cyan);
+}
+
+.block-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.block-stat {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+
+/* ─── equalizer ──────────────────────────────────────────────── */
+
+.eq {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 20px;
+}
+
+/* ─── service status row ─────────────────────────────────────── */
+
+.svc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+
+.svc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.svc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-up);
+  flex-shrink: 0;
+}
+
+.svc-dot.down {
+  background: var(--status-down);
+}
+
+/* ─── stack chips ────────────────────────────────────────────── */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chip {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text-muted-dim);
+}
+
+.chip.on {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+/* ─── hover-to-expand "more" panel ───────────────────────────── */
+
+.more-panel {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.45s ease, opacity 0.3s ease, margin-top 0.45s ease;
+}
+
+.block:hover .more-panel {
+  max-height: 240px;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.more-head {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted-dim);
+  padding-top: 10px;
+  margin-bottom: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.more-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.7rem;
+  color: var(--text-primary);
+  padding: 3px 0;
+  white-space: nowrap;
+}
+
+.more-row > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.more-meta {
+  color: var(--text-muted);
+  flex-shrink: 0;
 }

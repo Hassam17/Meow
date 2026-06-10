@@ -1,6 +1,6 @@
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const CURRENTLY_PLAYING_URL = "https://api.spotify.com/v1/me/player/currently-playing";
-const RECENTLY_PLAYED_URL = "https://api.spotify.com/v1/me/player/recently-played?limit=1";
+const RECENTLY_PLAYED_URL = "https://api.spotify.com/v1/me/player/recently-played?limit=6";
 
 const ACCESS_TOKEN_SAFETY_MARGIN_MS = 60_000;
 const NOW_PLAYING_CACHE_TTL_MS = 30_000;
@@ -13,6 +13,7 @@ export type NowPlaying = {
   progressMs: number | null;
   durationMs: number | null;
   playedAt: string | null;
+  recentTracks: { trackName: string; artist: string }[];
 } | null;
 
 type SpotifyArtist = { name: string };
@@ -71,7 +72,9 @@ function normalizeTrack(track: SpotifyTrack): { trackName: string; artist: strin
   };
 }
 
-async function fetchRecentlyPlayed(accessToken: string): Promise<NowPlaying> {
+async function fetchRecentTracks(
+  accessToken: string,
+): Promise<{ trackName: string; artist: string; albumArtUrl: string | null; playedAt: string }[]> {
   const response = await fetch(RECENTLY_PLAYED_URL, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
@@ -82,26 +85,22 @@ async function fetchRecentlyPlayed(accessToken: string): Promise<NowPlaying> {
   }
 
   const data = (await response.json()) as { items?: { track: SpotifyTrack; played_at: string }[] };
-  const item = data.items?.[0];
-  if (!item) return null;
-
-  return {
+  return (data.items ?? []).map((item) => ({
     ...normalizeTrack(item.track),
-    isPlaying: false,
-    progressMs: null,
-    durationMs: null,
     playedAt: item.played_at,
-  };
+  }));
 }
 
-async function fetchCurrentlyPlaying(accessToken: string): Promise<NowPlaying> {
+async function fetchCurrentlyPlayingRaw(
+  accessToken: string,
+): Promise<{ trackName: string; artist: string; albumArtUrl: string | null; isPlaying: boolean; progressMs: number | null; durationMs: number | null } | null> {
   const response = await fetch(CURRENTLY_PLAYING_URL, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
   });
 
   if (response.status === 204) {
-    return fetchRecentlyPlayed(accessToken);
+    return null;
   }
 
   if (!response.ok) {
@@ -115,7 +114,7 @@ async function fetchCurrentlyPlaying(accessToken: string): Promise<NowPlaying> {
   };
 
   if (!data.item) {
-    return fetchRecentlyPlayed(accessToken);
+    return null;
   }
 
   return {
@@ -123,19 +122,47 @@ async function fetchCurrentlyPlaying(accessToken: string): Promise<NowPlaying> {
     isPlaying: data.is_playing,
     progressMs: data.progress_ms,
     durationMs: data.item.duration_ms,
-    playedAt: null,
   };
 }
 
 let cachedNowPlaying: { data: NowPlaying; expiresAt: number } | null = null;
+
+async function fetchNowPlaying(): Promise<NowPlaying> {
+  const accessToken = await getAccessToken();
+  const [current, recent] = await Promise.all([
+    fetchCurrentlyPlayingRaw(accessToken),
+    fetchRecentTracks(accessToken),
+  ]);
+
+  if (current) {
+    return {
+      ...current,
+      playedAt: null,
+      recentTracks: recent.slice(0, 4).map(({ trackName, artist }) => ({ trackName, artist })),
+    };
+  }
+
+  const last = recent[0];
+  if (!last) return null;
+
+  return {
+    trackName: last.trackName,
+    artist: last.artist,
+    albumArtUrl: last.albumArtUrl,
+    isPlaying: false,
+    progressMs: null,
+    durationMs: null,
+    playedAt: last.playedAt,
+    recentTracks: recent.slice(1, 4).map(({ trackName, artist }) => ({ trackName, artist })),
+  };
+}
 
 export async function getNowPlaying(): Promise<NowPlaying> {
   if (cachedNowPlaying && cachedNowPlaying.expiresAt > Date.now()) {
     return cachedNowPlaying.data;
   }
 
-  const accessToken = await getAccessToken();
-  const data = await fetchCurrentlyPlaying(accessToken);
+  const data = await fetchNowPlaying();
 
   cachedNowPlaying = { data, expiresAt: Date.now() + NOW_PLAYING_CACHE_TTL_MS };
   return data;

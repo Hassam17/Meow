@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Gamepad2 } from "lucide-react";
 import type { CurrentlyPlaying as CurrentlyPlayingData } from "@/lib/steam";
 
 function formatRelativeTime(unixTs: number): string {
@@ -28,54 +29,46 @@ export function CurrentlyPlaying() {
   }, []);
 
   return (
-    <section className="panel space-y-3">
-      <p className="label">◈ currently playing</p>
+    <div className="block">
+      <div className="block-label">
+        <Gamepad2 size={14} strokeWidth={1.75} />
+        currently playing
+      </div>
 
       <AnimatePresence mode="wait">
         {!data ? (
-          <motion.p
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-[var(--text-muted)] text-sm"
-          >
+          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="block-value">
             —
-          </motion.p>
+          </motion.div>
         ) : (
           <motion.div
             key={data.gameName}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.3 }}
-            className="flex gap-3 items-start"
           >
-            {data.iconUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.iconUrl}
-                alt=""
-                className="h-14 w-14 rounded object-cover shrink-0"
-                style={{ boxShadow: "0 0 12px rgba(255,107,43,0.12)" }}
-              />
-            )}
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="text-[var(--text-primary)] text-sm leading-snug truncate font-[family-name:var(--font-display)] tracking-wide">
-                {data.gameName}
-              </p>
-              <p className="text-[var(--text-muted)] text-xs">
-                {Math.round((data.recentPlaytimeMinutes / 60) * 10) / 10}h recent
-                <span className="mx-1.5 opacity-40">·</span>
-                {data.hoursTotal}h total
-              </p>
-              <p className="text-[var(--text-muted)] text-[10px] font-[family-name:var(--font-display)] tracking-widest mt-1">
-                last played {formatRelativeTime(data.lastPlayedTimestamp)}
-              </p>
+            <div className="block-value">{data.gameName}</div>
+            <div className="block-sub">
+              {data.recentPlaytimeMinutes > 0
+                ? `${Math.round((data.recentPlaytimeMinutes / 60) * 10) / 10}h recent · ${data.hoursTotal}h total`
+                : `last played ${formatRelativeTime(data.lastPlayedTimestamp)}`}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+
+      {data && data.recentlyPlayed.length > 0 && (
+        <div className="more-panel">
+          <div className="more-head">recently played</div>
+          {data.recentlyPlayed.map((g) => (
+            <div className="more-row" key={g.gameName}>
+              <span>{g.gameName}</span>
+              <span className="more-meta">{g.hoursTotal}h total</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
