@@ -22,7 +22,7 @@ export function HomelabStatus() {
     <div id="homelab" className="block">
       <div className="block-label">
         <Server size={14} strokeWidth={1.75} />
-        homelab
+        a very nutty home server
       </div>
 
       <div className="block-stat">{data ? (averageUptime(data.services) ?? "—") : "—"}</div>

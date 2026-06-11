@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Reading sessionStorage during render would diverge from the server's render
+// (which always sees "not booted"), causing a hydration mismatch. Defer the
+// check to a layout effect, which only runs on the client and fires before
+// paint — so a returning-within-session visitor never sees the overlay flash.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const LINES = [
   { text: "NUTMAGCARD / v2.0  ——  IDENTITY RUNTIME", type: "header" },
@@ -27,11 +33,14 @@ export function BootSequence() {
   const [exiting, setExiting] = useState(false);
   const [done, setDone] = useState(false);
 
-  useEffect(() => {
-    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("nutmag-booted")) {
+  useIsomorphicLayoutEffect(() => {
+    if (sessionStorage.getItem("nutmag-booted")) {
       setDone(true);
-      return;
     }
+  }, []);
+
+  useEffect(() => {
+    if (done) return;
 
     let i = 0;
     const tick = setInterval(() => {
@@ -50,7 +59,7 @@ export function BootSequence() {
     }, 180);
 
     return () => clearInterval(tick);
-  }, []);
+  }, [done]);
 
   return (
     <AnimatePresence>

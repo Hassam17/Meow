@@ -176,6 +176,13 @@ STEAM_API_KEY=
 STEAM_PROFILE_ID=76561199044933923
 HOMELAB_STATUS_URL=
 GITHUB_TOKEN=           # optional
+HOMELAB_MOCK_DATA=      # optional, dev-only — "true" serves realistic mock v2 telemetry
+                        # (CPU/Mem/disks/network + all 8 services) instead of HOMELAB_STATUS_URL,
+                        # for testing the new capsules on machines without homelab access
+NEXT_PUBLIC_NUTBOT_SHELL_URL=  # optional, dev-only — set to ws://localhost:4001 (with
+                        # `npm run nutbot:shell` running) to add a "real shell" tab to NutBot,
+                        # backed by an actual pty on this machine. NEVER set in a
+                        # deployed/Tailscale-exposed build
 ```
 
 ## Deploy — Docker + Tailscale

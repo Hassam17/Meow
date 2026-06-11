@@ -1,45 +1,26 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, SunMoon } from "lucide-react";
+import { getServerThemeMode, getThemeMode, setThemeMode, subscribeTheme, type ThemeMode } from "@/lib/theme";
 
-const STORAGE_KEY = "nutmag-theme";
-const listeners = new Set<() => void>();
-
-function getSnapshot(): "dark" | "light" {
-  return localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
-}
-
-function getServerSnapshot(): "dark" | "light" {
-  return "dark";
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function setTheme(theme: "dark" | "light") {
-  localStorage.setItem(STORAGE_KEY, theme);
-  if (theme === "light") {
-    document.documentElement.dataset.theme = "light";
-  } else {
-    delete document.documentElement.dataset.theme;
-  }
-  listeners.forEach((listener) => listener());
-}
+const ORDER: ThemeMode[] = ["light", "auto", "dark"];
+const ICONS = { light: Sun, auto: SunMoon, dark: Moon } as const;
 
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
+  const Icon = ICONS[mode];
+  const next = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
 
   return (
     <button
       type="button"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      aria-label="Toggle theme"
+      onClick={() => setThemeMode(next)}
+      aria-label={`Theme: ${mode} — switch to ${next}`}
+      title={`theme: ${mode}`}
       className="theme-toggle"
     >
-      {theme === "light" ? <Moon size={14} strokeWidth={1.75} /> : <Sun size={14} strokeWidth={1.75} />}
+      <Icon size={14} strokeWidth={1.75} />
     </button>
   );
 }

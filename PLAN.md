@@ -43,7 +43,13 @@ remove if needed.
 
 ---
 
-## Phase 11 — Homelab Telemetry Capsule Breakdown (planning)
+## Phase 11 — Homelab Telemetry Capsule Breakdown (implemented)
+
+Status: all 8 capsules below are scaffolded and live in `app/page.tsx`. Each
+new capsule reads from `/api/homelab-v2` and renders "—" placeholders until
+the real homelab v2 aggregator starts returning `overall`/`host`/per-service
+`id`+`telemetry` (see Dependencies/blockers below — unchanged, still the
+only remaining blocker).
 
 The single `HomelabStatus` block (services dots + average uptime) splits into
 several dedicated capsules, one per telemetry concern, using the v2 types
@@ -128,6 +134,6 @@ Storage Apps                        (standalone)
 
 ### Open questions
 
-1. **Quicklinks capsule placement/sizing** — full-width row directly under
-   Identity Block, or a smaller/inline capsule? Currently it's a row of
-   icon+label links (`config/links.ts`).
+None remaining — Quicklinks shipped as a standalone full-width capsule
+(`components/QuickLinks.tsx`) directly under Identity Block, rendering the
+icon+label row from `config/links.ts`.

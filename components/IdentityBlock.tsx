@@ -2,7 +2,6 @@ import { Github, Server } from "lucide-react";
 import { NutMagLogo } from "@/components/NutMagLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UptimeStat } from "@/components/UptimeStat";
-import { quickLinks } from "@/config/links";
 
 export function IdentityBlock() {
   return (
@@ -27,22 +26,6 @@ export function IdentityBlock() {
           </a>
           <span>·</span>
           <UptimeStat />
-        </div>
-        <div className="namecard-sub flex flex-wrap items-center gap-2 mt-1">
-          {quickLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1"
-              >
-                <Icon size={14} strokeWidth={1.75} /> {link.label}
-              </a>
-            );
-          })}
         </div>
       </div>
       <div className="namecard-right">

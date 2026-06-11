@@ -18,7 +18,6 @@ export function GlyphStrip() {
     return () => clearInterval(id);
   }, []);
 
-  const allUp = data ? data.services.every((s) => s.status === "up") : true;
   const anyDown = data ? data.services.some((s) => s.status === "down") : false;
   const color = anyDown ? "var(--accent-orange)" : "var(--accent-cyan)";
 

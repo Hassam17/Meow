@@ -19,7 +19,7 @@ import path from "node:path";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REDIRECT_URI = "http://127.0.0.1:8888/callback";
 const PORT = 8888;
-const SCOPES = "user-read-currently-playing user-read-playback-state user-read-recently-played";
+const SCOPES = "user-read-currently-playing user-read-playback-state user-read-recently-played user-modify-playback-state";
 
 function loadEnvLocal() {
   const envPath = path.join(ROOT, ".env.local");

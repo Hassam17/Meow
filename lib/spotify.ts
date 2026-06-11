@@ -1,6 +1,8 @@
 const TOKEN_URL = "https://accounts.spotify.com/api/token";
 const CURRENTLY_PLAYING_URL = "https://api.spotify.com/v1/me/player/currently-playing";
 const RECENTLY_PLAYED_URL = "https://api.spotify.com/v1/me/player/recently-played?limit=6";
+const QUEUE_URL = "https://api.spotify.com/v1/me/player/queue";
+const PLAYER_BASE_URL = "https://api.spotify.com/v1/me/player/";
 
 const ACCESS_TOKEN_SAFETY_MARGIN_MS = 60_000;
 const NOW_PLAYING_CACHE_TTL_MS = 30_000;
@@ -13,13 +15,17 @@ export type NowPlaying = {
   progressMs: number | null;
   durationMs: number | null;
   playedAt: string | null;
-  recentTracks: { trackName: string; artist: string }[];
+  recentTracks: { trackName: string; artist: string; uri: string }[];
+  queue: { trackName: string; artist: string }[];
 } | null;
+
+export type PlayerAction = "play" | "pause" | "next" | "previous" | "play-track";
 
 type SpotifyArtist = { name: string };
 type SpotifyImage = { url: string };
 type SpotifyTrack = {
   name: string;
+  uri: string;
   artists: SpotifyArtist[];
   album: { images?: SpotifyImage[] };
   duration_ms: number;
@@ -64,17 +70,38 @@ async function getAccessToken(): Promise<string> {
   return cachedAccessToken.token;
 }
 
-function normalizeTrack(track: SpotifyTrack): { trackName: string; artist: string; albumArtUrl: string | null } {
+function normalizeTrack(track: SpotifyTrack): { trackName: string; artist: string; albumArtUrl: string | null; uri: string } {
   return {
     trackName: track.name,
     artist: track.artists.map((a) => a.name).join(", "),
     albumArtUrl: track.album.images?.[0]?.url ?? null,
+    uri: track.uri,
   };
+}
+
+// Queue is best-effort: requires user-read-playback-state and an active
+// session — return [] rather than failing the whole now-playing payload.
+async function fetchQueue(accessToken: string): Promise<{ trackName: string; artist: string }[]> {
+  try {
+    const response = await fetch(QUEUE_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as { queue?: SpotifyTrack[] };
+    return (data.queue ?? []).slice(0, 4).map((t) => ({
+      trackName: t.name,
+      artist: t.artists.map((a) => a.name).join(", "),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchRecentTracks(
   accessToken: string,
-): Promise<{ trackName: string; artist: string; albumArtUrl: string | null; playedAt: string }[]> {
+): Promise<{ trackName: string; artist: string; albumArtUrl: string | null; uri: string; playedAt: string }[]> {
   const response = await fetch(RECENTLY_PLAYED_URL, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
@@ -135,10 +162,12 @@ async function fetchNowPlaying(): Promise<NowPlaying> {
   ]);
 
   if (current) {
+    const queue = await fetchQueue(accessToken);
     return {
       ...current,
       playedAt: null,
-      recentTracks: recent.slice(0, 4).map(({ trackName, artist }) => ({ trackName, artist })),
+      recentTracks: recent.slice(0, 4).map(({ trackName, artist, uri }) => ({ trackName, artist, uri })),
+      queue,
     };
   }
 
@@ -153,7 +182,8 @@ async function fetchNowPlaying(): Promise<NowPlaying> {
     progressMs: null,
     durationMs: null,
     playedAt: last.playedAt,
-    recentTracks: recent.slice(1, 4).map(({ trackName, artist }) => ({ trackName, artist })),
+    recentTracks: recent.slice(1, 5).map(({ trackName, artist, uri }) => ({ trackName, artist, uri })),
+    queue: [],
   };
 }
 
@@ -166,4 +196,59 @@ export async function getNowPlaying(): Promise<NowPlaying> {
 
   cachedNowPlaying = { data, expiresAt: Date.now() + NOW_PLAYING_CACHE_TTL_MS };
   return data;
+}
+
+// ─── playback controls ────────────────────────────────────────────
+// Requires the user-modify-playback-state scope (re-run `npm run
+// spotify:auth` if the refresh token predates it) and Spotify Premium.
+// Controls act on whatever device is currently active.
+
+export async function controlPlayback(action: PlayerAction, uri?: string): Promise<{ ok: boolean; error?: string }> {
+  const accessToken = await getAccessToken();
+
+  let url: string;
+  let method: "PUT" | "POST" = "PUT";
+  let body: string | undefined;
+
+  switch (action) {
+    case "play":
+      url = `${PLAYER_BASE_URL}play`;
+      break;
+    case "pause":
+      url = `${PLAYER_BASE_URL}pause`;
+      break;
+    case "next":
+      url = `${PLAYER_BASE_URL}next`;
+      method = "POST";
+      break;
+    case "previous":
+      url = `${PLAYER_BASE_URL}previous`;
+      method = "POST";
+      break;
+    case "play-track":
+      if (!uri) return { ok: false, error: "missing track uri" };
+      url = `${PLAYER_BASE_URL}play`;
+      body = JSON.stringify({ uris: [uri] });
+      break;
+  }
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body,
+    cache: "no-store",
+  });
+
+  if (response.ok || response.status === 204) {
+    // Bust the cache so the next poll reflects the new state immediately
+    cachedNowPlaying = null;
+    return { ok: true };
+  }
+
+  if (response.status === 404) return { ok: false, error: "no active spotify device" };
+  if (response.status === 403) return { ok: false, error: "spotify premium required (or missing scope — re-run spotify:auth)" };
+  return { ok: false, error: `spotify returned ${response.status}` };
 }
