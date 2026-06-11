@@ -56,9 +56,31 @@ export type ServiceStatusV2 = ServiceStatus & {
   telemetry: Telemetry;
 };
 
+// Host-level telemetry — not tied to any single service, describes the
+// machine the stack runs on.
+export type DriveInfo = {
+  name: string;
+  mount: string;
+  used_bytes: number;
+  total_bytes: number;
+  used_pct: number;
+};
+
+export type HostTelemetry = {
+  drives: DriveInfo[];
+  network: {
+    rx_bytes: number;
+    tx_bytes: number;
+    rx_rate_bps: number;
+    tx_rate_bps: number;
+  };
+  uptime_seconds: number;
+};
+
 export type HomelabStatusV2 = {
   last_checked: string;
   overall: "healthy" | "degraded" | "down";
+  host: HostTelemetry;
   services: ServiceStatusV2[];
 };
 

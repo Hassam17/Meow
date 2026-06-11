@@ -1,16 +1,10 @@
 import { Github, Server } from "lucide-react";
 import { NutMagLogo } from "@/components/NutMagLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const PROJECT_EPOCH = new Date("2026-06-08T00:00:00Z").getTime();
-
-function daysSince() {
-  return Math.floor((Date.now() - PROJECT_EPOCH) / 86_400_000);
-}
+import { UptimeStat } from "@/components/UptimeStat";
+import { quickLinks } from "@/config/links";
 
 export function IdentityBlock() {
-  const days = daysSince();
-
   return (
     <div className="namecard">
       <div>
@@ -20,7 +14,7 @@ export function IdentityBlock() {
         </div>
         <div className="namecard-sub flex flex-wrap items-center gap-2">
           <a
-            href="https://github.com/NutMag2469"
+            href="https://github.com/Zohaib2244"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1"
@@ -32,11 +26,27 @@ export function IdentityBlock() {
             <Server size={14} strokeWidth={1.75} /> homelab
           </a>
           <span>·</span>
-          <span>{days}d running this build</span>
+          <UptimeStat />
+        </div>
+        <div className="namecard-sub flex flex-wrap items-center gap-2 mt-1">
+          {quickLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1"
+              >
+                <Icon size={14} strokeWidth={1.75} /> {link.label}
+              </a>
+            );
+          })}
         </div>
       </div>
       <div className="namecard-right">
-        <div className="namecard-tagline">building things at 2am</div>
+        <div className="namecard-tagline">nutting magnesium amounts of stuff</div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <span className="live-badge">

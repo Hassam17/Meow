@@ -15,7 +15,7 @@ export function Equalizer() {
       {BARS.map((bar, i) => (
         <motion.span
           key={i}
-          className="inline-block w-[3px] rounded-sm bg-[var(--accent-cyan)]"
+          className="inline-block w-[3px] rounded-sm bg-[var(--accent-orange)]"
           animate={{ height: bar.heights.map((h) => `${h}px`) }}
           transition={{
             duration: bar.duration,

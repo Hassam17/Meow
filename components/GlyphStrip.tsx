@@ -31,26 +31,8 @@ export function GlyphStrip() {
         className="absolute inset-0"
         animate={
           anyDown
-            ? {
-                opacity: [1, 0.3, 1, 0.6, 1, 0.2, 1],
-                boxShadow: [
-                  `0 0 6px 3px var(--accent-orange)`,
-                  `0 0 2px 1px var(--accent-orange)`,
-                  `0 0 12px 5px var(--accent-orange)`,
-                  `0 0 4px 2px var(--accent-orange)`,
-                  `0 0 18px 7px var(--accent-orange)`,
-                  `0 0 2px 1px var(--accent-orange)`,
-                  `0 0 6px 3px var(--accent-orange)`,
-                ],
-              }
-            : {
-                opacity: [0.6, 1, 0.6],
-                boxShadow: [
-                  `0 0 4px 2px var(--accent-cyan)`,
-                  `0 0 14px 5px var(--accent-cyan)`,
-                  `0 0 4px 2px var(--accent-cyan)`,
-                ],
-              }
+            ? { opacity: [1, 0.3, 1, 0.6, 1, 0.2, 1] }
+            : { opacity: [0.6, 1, 0.6] }
         }
         transition={{
           duration: anyDown ? 1.2 : 2.5,

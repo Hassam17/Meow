@@ -31,7 +31,7 @@ A living developer identity card for NutMag2469. A single webpage that shows rea
 | Orange accent | `#ff6b2b` | `#e05a18` |
 | Cyan/teal accent | `#00b4c8` | `#00768a` |
 
-- **Layout**: A "namecard" header (logo/tagline/links left, live badge + tagline right) above a grid of "blocks". Paired modules (Now Playing/Currently Playing, Homelab/Stack) sit 2-up in a flex row; hero content (Currently Building) is a standalone full-width block with a `3px` orange-accent left border
+- **Layout**: A "namecard" header (logo/tagline/quicklinks left, live badge + tagline right) above a stack of "blocks". Now Playing/Currently Playing sit 2-up in a paired flex row; GitHub Activity and Homelab Status are standalone full-width blocks — GitHub Activity carries the `3px` orange-accent left border
 - **Card treatment ("sticker/stamp")**: `border-radius: 12–16px`, `border: 1.5px solid` (border token), hard offset `box-shadow: 3-5px 3-5px 0` (shadow token, **no blur**)
 - **Typography**: `DotGothic16` for the logo (`1.7rem`), section/field labels (`0.62rem`, uppercase, `letter-spacing: 0.14em`), and headline stat numbers (`2.2rem`, `line-height: 1` — the largest text on the page). `JetBrains Mono` for primary data values (`1.25rem`, `font-weight: 500`), sub text (`0.75rem`), and chips/pills/badges (`0.6–0.65rem`, uppercase)
 - **Icons**: Lucide, 14×14px, `stroke-width: 1.75`, prefixed to section labels, links, and badges
@@ -50,11 +50,10 @@ Each block in a paired row is a flex item (`flex-grow: 1; flex-shrink: 1; flex-b
 4. A "more info" panel reveals below the existing content (`max-height`/`opacity` transition) with extra contextual data:
    - **Now Playing** → recently played tracks
    - **Currently Playing** → recently played games + hours
-   - **Currently Building** → recent commits
+   - **GitHub Activity** → recent commits (message · repo · relative time)
    - **Homelab** → per-service uptime breakdown
-   - **Stack** → what each tool is currently used for
 
-Standalone full-width blocks (Currently Building) get steps 2–4 without the flex rearrangement — there are no siblings to shrink.
+Standalone full-width blocks (GitHub Activity, Homelab Status) get steps 2–4 without the flex rearrangement — there are no siblings to shrink.
 
 ---
 
@@ -62,16 +61,17 @@ Standalone full-width blocks (Currently Building) get steps 2–4 without the fl
 
 ### 1. Identity Block
 - Tag: `NutMag2469`
-- Tagline: `"building things at 2am"` (static for now)
+- Tagline: `"nutting magnesium amounts of stuff"` (static for now)
 - Links: GitHub, homelab status
+- Quicklinks: extensible row of icon links (`/config/links.ts`) — currently YouTube, LinkedIn, ChatGPT
 - Logo: minimal NutMag icon mark (single icon, horizontal format, orange/cyan on dark)
 
 ### 2. Now Playing 🎵
-- Source: Last.fm API
+- Source: Spotify Web API (Authorization Code flow)
 - Shows: track name, artist, album art (blurred as background accent)
 - Live: animated equalizer bars when track is playing
 - Fallback: last played track + "X minutes ago" timestamp
-- Env var: `LASTFM_API_KEY`, `LASTFM_USERNAME`
+- Env var: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`
 
 ### 3. Currently Playing 🎮
 - Source: Steam API (public profile)
@@ -81,28 +81,27 @@ Standalone full-width blocks (Currently Building) get steps 2–4 without the fl
 
 ### 4. Homelab Status 🖥️
 - Source: self-hosted `/status` endpoint on homelab server
-- Shows: row of service dots (green = up, red = down) + uptime %
+- Shows: row of service dots (green = up, red = down) + average uptime %
 - Cached every 60s — do not hammer the endpoint
 - Env var: `HOMELAB_STATUS_URL`
-- Expected response shape:
+- Real services: immich, jellyfin, jellyseerr, radarr, sonarr, jackett, qbittorrent, nextcloud
+- Expected response shape (v1, current):
 ```json
 {
   "services": [
-    { "name": "Navidrome", "status": "up", "uptime": "99.8%" },
-    { "name": "Vaultwarden", "status": "up", "uptime": "100%" }
+    { "name": "immich", "status": "up", "uptime": "99.9%" },
+    { "name": "jellyfin", "status": "up", "uptime": "99.8%" }
   ],
   "last_checked": "2026-06-08T14:32:00Z"
 }
 ```
+- **v2 (design-only, see `lib/homelab.ts`)**: per-service `telemetry` — storage for Immich/Nextcloud, download queues for Sonarr/Radarr/qBittorrent, request queue for Jellyseerr, media sessions for Jellyfin — plus a top-level `host` block with connected drives/disks (capacity used/total) and container network rx/tx stats. The aggregator that produces this is a separate homelab-side project, not yet built.
 
-### 5. Currently Building 🔨
-- Source: hardcoded string for MVP, GitHub latest commit as stretch goal
-- Update this manually in `/config/current.ts` — single exported string
-- Env var (optional): `GITHUB_TOKEN` for commit pulling
-
-### 6. Stack Chips
-- Static list of pills: Unity, Python, TypeScript, Docker, Claude Code
-- Max 8 chips — do not bloat this section
+### 5. GitHub Activity
+- Source: GitHub public events API (`/users/NutMag2469/events/public`), filtered to push commits
+- Shows: most recent commit message + repo + relative time — standalone hero block with the orange-accent left border
+- More-info panel: next several recent commits (message · repo · relative time)
+- Env var (optional): `GITHUB_TOKEN` — raises rate limit from 60/hr to 5000/hr; works unauthenticated too
 
 ---
 
@@ -113,24 +112,30 @@ Standalone full-width blocks (Currently Building) get steps 2–4 without the fl
 │   ├── page.tsx              # Main card page
 │   ├── layout.tsx            # Root layout, fonts, metadata
 │   └── api/
-│       ├── now-playing/      # Last.fm proxy (hides API key)
+│       ├── now-playing/      # Spotify proxy (hides API key)
 │       ├── currently-playing/ # Steam proxy
-│       └── homelab/          # Homelab status proxy
+│       ├── homelab/          # Homelab status proxy
+│       └── github-activity/  # GitHub commits proxy
 ├── components/
 │   ├── IdentityBlock.tsx
 │   ├── NowPlaying.tsx
 │   ├── CurrentlyPlaying.tsx
 │   ├── HomelabStatus.tsx
-│   ├── CurrentlyBuilding.tsx
-│   └── StackChips.tsx
+│   ├── GitHubActivity.tsx
+│   ├── BootSequence.tsx
+│   ├── GlyphStrip.tsx
+│   ├── Equalizer.tsx
+│   ├── NutMagLogo.tsx
+│   └── ThemeToggle.tsx
 ├── config/
-│   └── current.ts            # "Currently building" string lives here
+│   └── links.ts               # Identity block quicklinks (extensible)
 ├── lib/
-│   ├── lastfm.ts
+│   ├── spotify.ts
 │   ├── steam.ts
+│   ├── github.ts
 │   └── homelab.ts
 ├── styles/
-│   └── globals.css           # CSS variables, grain overlay, base styles
+│   └── globals.css           # Chunky Blocks design tokens, base styles
 ├── CLAUDE.md                 # This file
 └── .env.local                # All API keys — never commit this
 ```
@@ -146,14 +151,19 @@ Polling interval: 30s for Now Playing, 60s for everything else.
 ---
 
 ## Current Focus
-> **MVP — get data flowing before touching UI**
+> **MVP — get data flowing before touching UI** (✅ shipped)
 > 1. Set up Next.js project, Tailwind, Framer Motion
-> 2. Build Last.fm API route + NowPlaying component (data only, unstyled)
+> 2. Build Spotify API route + NowPlaying component (data only, unstyled)
 > 3. Build Steam API route + CurrentlyPlaying component (data only, unstyled)
 > 4. Build homelab status endpoint on server + proxy route
 > 5. Wire up all data, confirm everything returns correctly
 > 6. Apply full aesthetic per the Design System (Chunky Blocks + Accent Border, dark/light tokens, hover-to-expand capsules) — see `DESIGN_VARIATIONS.md`/`.html`
 > 7. Deploy via Docker + Tailscale (see Phase 8 below)
+
+> **Now — content finalization & v2 modules**
+> - GitHub Activity module (replaces Currently Building) ✅, Identity quicklinks ✅, Stack Chips removed ✅
+> - Homelab v2 host telemetry (drives, network) — types defined in `lib/homelab.ts`; aggregator still to build on the homelab side
+> - Personal uptime stat — switch from fixed "days since project epoch" to live session uptime (resets on server restart), plus a future DB-backed historical tracker
 
 ---
 
@@ -184,9 +194,8 @@ Secrets are passed at runtime via `env_file: .env.local` — they are never bake
 ---
 
 ## Still to Confirm (fill these in before starting)
-- [ ] Steam profile ID + confirm profile is public
-- [ ] Last.fm username
-- [ ] Which homelab services to show in status row (Navidrome/Vaultwarden in the example above — confirm if real or placeholder, and add the full list)
+- [x] Steam profile ID + confirm profile is public — `76561199044933923`, confirmed public
+- [x] Homelab services — real list: immich, jellyfin, jellyseerr, radarr, sonarr, jackett, qbittorrent, nextcloud
 - [x] Domain for deployment — **No purchase needed**: serving over Tailscale instead (MagicDNS hostname / `tailscale serve` for HTTPS within the tailnet). Keeps the whole stack free and private; `tailscale funnel` remains an option later if public access is ever wanted
 - [x] Vercel or self-hosted Docker? — **Self-hosted Docker**
 - [x] Custom logo file ready or generate one? — **Generate**: minimal NutMag icon mark as inline SVG, dot-matrix-inspired, orange/cyan on dark
@@ -197,7 +206,7 @@ Secrets are passed at runtime via `env_file: .env.local` — they are never bake
 > Written under the old CRT aesthetic — re-check each against the Design System before implementing. The hover-to-expand capsule interaction (above) is now the primary interaction pattern.
 - **Boot sequence intro**: brief retro-terminal "boot log" animation (dot-matrix text scrolling system checks) on first load, before the card resolves
 - **Glyph-style status pulse**: thin strip of light (orange/cyan/cream) that pulses based on overall state — steady glow when everything's up, irregular flicker if a homelab service is down (Nothing Phone Glyph-inspired)
-- **Personal uptime stat**: alongside homelab uptime %, a small readout like "hours since last commit" or "days running this build" — ties infra data back to the person, not just the systems
+- **Personal uptime stat**: live server-process uptime ("Xh Ym running this session" — resets on restart), shown in the namecard. Future: a small DB-backed history service tracks uptime over time for a calendar/heatmap view in Homelab's more-info panel
 
 ---
 

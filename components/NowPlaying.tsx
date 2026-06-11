@@ -66,8 +66,8 @@ export function NowPlaying() {
       {data && data.recentTracks.length > 0 && (
         <div className="more-panel">
           <div className="more-head">recently played</div>
-          {data.recentTracks.map((t) => (
-            <div className="more-row" key={`${t.trackName}-${t.artist}`}>
+          {data.recentTracks.map((t, i) => (
+            <div className="more-row" key={i}>
               <span>{t.trackName}</span>
               <span className="more-meta">{t.artist}</span>
             </div>
