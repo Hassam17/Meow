@@ -23,8 +23,11 @@ const entries = new Map<string, Entry>();
 
 function fetchUrl(url: string) {
   fetch(url)
-    .then((r) => r.json())
+    // error responses carry an error body, not widget data — keep the
+    // last good payload instead of committing it
+    .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
+      if (data === null) return;
       const entry = entries.get(url);
       if (!entry) return;
       entry.data = data;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   closestCorners,
   useSensor,
@@ -90,6 +91,9 @@ export function Dashboard() {
   const { layout, reorderWidget, editMode } = useLayout();
   const gridCols = useGridColumns();
   const [activeId, setActiveId] = useState<WidgetId | null>(null);
+  // last (active, over) pair we reordered for — dedupes onDragOver storms so a
+  // dense-reflow-triggered re-measure can't feed back into another reorder
+  const lastOverPair = useRef<string | null>(null);
 
   // small activation distance so plain clicks on the handle don't start a drag
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -99,12 +103,16 @@ export function Dashboard() {
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as WidgetId);
+    lastOverPair.current = null;
   }
 
   // reorder live while dragging so the grid reflows under the pointer
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const pairKey = `${active.id}:${over.id}`;
+    if (lastOverPair.current === pairKey) return;
+    lastOverPair.current = pairKey;
     reorderWidget(active.id as WidgetId, over.id as WidgetId);
   }
 
@@ -112,6 +120,7 @@ export function Dashboard() {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      measuring={{ droppable: { strategy: MeasuringStrategy.BeforeDragging } }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={() => setActiveId(null)}

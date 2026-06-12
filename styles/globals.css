@@ -39,6 +39,114 @@
   --status-down: #c84a12;
 }
 
+/* ─── theme packs ──────────────────────────────────────────────────
+   Alternate palettes selected from the hub settings widget; metadata in
+   config/themes.ts. No [data-palette] attribute = "ember" (the tokens
+   above). --accent-orange stays the primary accent slot and
+   --accent-cyan the secondary, whatever the actual hues are. */
+
+[data-palette="slate"] {
+  --bg-page: #0e1116;
+  --bg-card: #161b22;
+  --bg-nested: #11151b;
+  --border: #2c3440;
+  --shadow: #04060a;
+  --text-primary: #d8e2ec;
+  --text-muted: #3e4a5a;
+  --text-muted-dim: #303a48;
+  --accent-orange: #4da3ff;
+  --accent-cyan: #00c8a0;
+  --accent-warm: #d8e2ec;
+  --badge-text: #0e1116;
+  --status-up: #1c6b40;
+  --status-down: #d04848;
+}
+
+[data-palette="slate"][data-theme="light"] {
+  --bg-page: #c8d0da;
+  --bg-card: #eef2f6;
+  --bg-nested: #f8fafc;
+  --border: #5a6a7e;
+  --shadow: #98a8bc;
+  --text-primary: #141a22;
+  --text-muted: #76869a;
+  --text-muted-dim: #98a8b8;
+  --accent-orange: #1a73d8;
+  --accent-cyan: #00806a;
+  --accent-warm: #141a22;
+  --badge-text: #eef2f6;
+  --status-up: #1a5e30;
+  --status-down: #c04040;
+}
+
+[data-palette="moss"] {
+  --bg-page: #0c120c;
+  --bg-card: #141c14;
+  --bg-nested: #101810;
+  --border: #2c3a28;
+  --shadow: #040704;
+  --text-primary: #dce8d0;
+  --text-muted: #44503c;
+  --text-muted-dim: #343f2e;
+  --accent-orange: #8fc63c;
+  --accent-cyan: #d89a28;
+  --accent-warm: #dce8d0;
+  --badge-text: #0c120c;
+  --status-up: #2c7a38;
+  --status-down: #c85a20;
+}
+
+[data-palette="moss"][data-theme="light"] {
+  --bg-page: #ccd6c0;
+  --bg-card: #eef4e4;
+  --bg-nested: #f6faf0;
+  --border: #66785a;
+  --shadow: #9cae8c;
+  --text-primary: #161c10;
+  --text-muted: #849474;
+  --text-muted-dim: #a4b494;
+  --accent-orange: #4e8a10;
+  --accent-cyan: #a87010;
+  --accent-warm: #161c10;
+  --badge-text: #eef4e4;
+  --status-up: #2a6e30;
+  --status-down: #b84818;
+}
+
+[data-palette="plum"] {
+  --bg-page: #120c14;
+  --bg-card: #1c141e;
+  --bg-nested: #171019;
+  --border: #3a2c40;
+  --shadow: #060408;
+  --text-primary: #ecdce8;
+  --text-muted: #4c3c52;
+  --text-muted-dim: #3c2f42;
+  --accent-orange: #e84a8a;
+  --accent-cyan: #d8a830;
+  --accent-warm: #ecdce8;
+  --badge-text: #120c14;
+  --status-up: #1c6b40;
+  --status-down: #d04830;
+}
+
+[data-palette="plum"][data-theme="light"] {
+  --bg-page: #d6c8d4;
+  --bg-card: #f4ecf2;
+  --bg-nested: #faf6fa;
+  --border: #7a5e76;
+  --shadow: #ab92a8;
+  --text-primary: #1c1018;
+  --text-muted: #988096;
+  --text-muted-dim: #b8a0b4;
+  --accent-orange: #c01868;
+  --accent-cyan: #9a7208;
+  --accent-warm: #1c1018;
+  --badge-text: #f4ecf2;
+  --status-up: #1a5e30;
+  --status-down: #b83828;
+}
+
 @theme inline {
   --font-display: var(--font-dot-gothic);
   --font-mono: var(--font-jetbrains-mono);
@@ -370,27 +478,22 @@ body {
   color: var(--text-primary);
 }
 
-/* ─── expansion surfaces (flyout + overlay) ──────────────────────
-   Both render through portals, so they overlay siblings instead of
-   reflowing the layout — see components/framework/WidgetFlyout.tsx */
+/* ─── expansion surfaces ─────────────────────────────────────────
+   hover → .inline-expand grows inside the card (animated height), so
+   the grid row grows and surrounding widgets reflow to make room;
+   overlay → centered modal via portal */
 
-.flyout {
-  position: fixed;
-  z-index: 45;
-  background: var(--bg-card);
-  border: 1.5px solid var(--accent-orange);
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 5px 5px 0 var(--shadow);
-  max-height: min(340px, 55vh);
+.inline-expand {
+  overflow: hidden;
+}
+
+.inline-expand-body {
+  padding-top: 10px;
+  /* long lists scroll inside the expansion instead of growing the card forever */
+  max-height: 300px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
-}
-
-.flyout > .more-head:first-child {
-  border-top: none;
-  padding-top: 0;
 }
 
 .overlay-backdrop {
@@ -751,6 +854,36 @@ body {
 }
 
 /* ─── nutbot terminal ─────────────────────────────────────────── */
+
+/* compact face-only nutbot card — terminal lives in its overlay */
+.nutbot-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 2px 0;
+  text-align: center;
+  height: 100%;
+}
+
+.nutbot-mini-ticker {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  min-height: 1.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.nutbot-mini-hint {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted-dim);
+}
 
 .term-row {
   display: flex;
@@ -2139,6 +2272,57 @@ body {
 }
 
 /* ─── hub settings widget ────────────────────────────────────── */
+
+.palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.palette-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.palette-btn:hover:not(.active) {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.palette-btn.active {
+  color: var(--text-primary);
+  border-color: var(--accent-orange);
+}
+
+.palette-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 26px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.palette-swatch span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
 
 .hub-summary {
   display: flex;

@@ -7,7 +7,17 @@
 import { useSyncExternalStore } from "react";
 import { Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sun, SunMoon } from "lucide-react";
 import { WIDGETS, DEFAULT_ORDER } from "@/config/widgets";
-import { getServerThemeMode, getThemeMode, setThemeMode, subscribeTheme, type ThemeMode } from "@/lib/theme";
+import { THEME_PACKS } from "@/config/themes";
+import {
+  getPalette,
+  getServerPalette,
+  getServerThemeMode,
+  getThemeMode,
+  setPalette,
+  setThemeMode,
+  subscribeTheme,
+  type ThemeMode,
+} from "@/lib/theme";
 import { getPrefs, getServerPrefs, setPrefs, subscribePrefs } from "@/lib/prefs";
 import { useLayout } from "@/components/LayoutProvider";
 
@@ -36,6 +46,29 @@ function ThemeModeRow() {
   );
 }
 
+function PaletteRow() {
+  const palette = useSyncExternalStore(subscribeTheme, getPalette, getServerPalette);
+  return (
+    <div className="palette-row">
+      {THEME_PACKS.map((pack) => (
+        <button
+          key={pack.id}
+          type="button"
+          className={`palette-btn${palette === pack.id ? " active" : ""}`}
+          onClick={() => setPalette(pack.id)}
+          title={`${pack.label} palette`}
+        >
+          <span className="palette-swatch" style={{ background: pack.swatch[0] }}>
+            <span style={{ background: pack.swatch[1] }} />
+            <span style={{ background: pack.swatch[2] }} />
+          </span>
+          {pack.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function HubSettings() {
   const { layout } = useLayout();
   const visibleCount = layout.widgets.filter((w) => !w.hidden).length;
@@ -46,6 +79,7 @@ export function HubSettings() {
         <span>theme</span>
         <ThemeModeRow />
       </div>
+      <PaletteRow />
       <div className="hub-summary">
         <SlidersHorizontal size={12} strokeWidth={1.75} />
         {visibleCount}/{layout.widgets.length} widgets shown · click to configure
@@ -64,6 +98,10 @@ export function HubSettingsMore() {
       <div className="wset-row">
         <span>mode</span>
         <ThemeModeRow />
+      </div>
+      <div className="wset-row">
+        <span>palette</span>
+        <PaletteRow />
       </div>
 
       <div className="more-head">widgets</div>

@@ -148,9 +148,11 @@ export function NowPlayingMore() {
     setControlError(await spotifyControl("play-track", uri, refresh));
   }
 
-  const showQueue = !!data?.isPlaying && (data?.queue.length ?? 0) > 0;
+  const queue = data?.queue ?? [];
+  const recentTracks = data?.recentTracks ?? [];
+  const showQueue = !!data?.isPlaying && queue.length > 0;
 
-  if (!data || (!showQueue && data.recentTracks.length === 0)) {
+  if (!showQueue && recentTracks.length === 0) {
     return <div className="block-sub">no recent tracks</div>;
   }
 
@@ -158,13 +160,13 @@ export function NowPlayingMore() {
     <>
       <div className="more-head">Recently Played / Queue</div>
       {showQueue
-        ? data.queue.map((t, i) => (
+        ? queue.map((t, i) => (
             <div className="more-row" key={i}>
               <span>{t.trackName}</span>
               <span className="more-meta">{t.artist}</span>
             </div>
           ))
-        : data.recentTracks.map((t, i) => (
+        : recentTracks.map((t, i) => (
             <div
               className="more-row clickable"
               key={i}

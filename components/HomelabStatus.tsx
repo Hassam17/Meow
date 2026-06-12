@@ -8,13 +8,15 @@ export function HomelabStatus() {
   const { settings } = useWidget();
   const { data } = usePolling<HomelabStatusData>("/api/homelab", Number(settings.pollSeconds ?? 60) * 1000);
 
+  const services = data?.services ?? [];
+
   return (
     <>
-      <div className="block-stat">{data ? (averageUptime(data.services) ?? "—") : "—"}</div>
+      <div className="block-stat">{services.length > 0 ? (averageUptime(services) ?? "—") : "—"}</div>
 
-      {data && (
+      {services.length > 0 && (
         <div className="svc-row">
-          {data.services.map((s) => (
+          {services.map((s) => (
             <div className="svc" key={s.name}>
               <span className={`svc-dot${s.status === "down" ? " down" : ""}`} />
               {s.name}
@@ -28,13 +30,14 @@ export function HomelabStatus() {
 
 export function HomelabStatusMore() {
   const { data } = usePolling<HomelabStatusData>("/api/homelab", 60_000);
+  const services = data?.services ?? [];
 
-  if (!data || data.services.length === 0) return <div className="block-sub">no service data</div>;
+  if (services.length === 0) return <div className="block-sub">no service data</div>;
 
   return (
     <>
       <div className="more-head">services</div>
-      {data.services.map((s) => (
+      {services.map((s) => (
         <div className="more-row" key={s.name}>
           <span>{s.name}</span>
           <span className="more-meta">{s.uptime}</span>

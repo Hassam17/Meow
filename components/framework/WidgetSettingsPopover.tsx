@@ -13,7 +13,7 @@ import { useLayout } from "@/components/LayoutProvider";
 
 const SIZE_LABELS = { S: "small", M: "medium", L: "large" } as const;
 const ORIENTATION_LABELS = { h: "horizontal", v: "vertical" } as const;
-const EXPAND_LABELS = { none: "static", hover: "hover", overlay: "click" } as const;
+const EXPAND_LABELS = { none: "static", hover: "hover", overlay: "click", grow: "grow" } as const;
 
 function SchemaField({
   field,
@@ -108,7 +108,12 @@ export function WidgetSettingsPopover({
     };
   }, [onClose]);
 
-  const expandModes = manifest.expandedComponent ? manifest.expandModes : (["none"] as const);
+  // "hover"/"overlay" need expandedComponent to render into; "grow" drives its
+  // tiers from useWidget().size directly and needs neither
+  const expandModes =
+    manifest.expandedComponent || manifest.expandModes.includes("grow")
+      ? manifest.expandModes
+      : (["none"] as const);
 
   return (
     <div ref={panelRef} className="wset-panel">
@@ -169,24 +174,6 @@ export function WidgetSettingsPopover({
                 onClick={() => updateInstance(instance.id, { expand: m })}
               >
                 {EXPAND_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {instance.expand === "hover" && (
-        <div className="wset-row">
-          <span>direction</span>
-          <div className="seg-row">
-            {(["down", "up"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`seg-btn${instance.expandDirection === d ? " active" : ""}`}
-                onClick={() => updateInstance(instance.id, { expandDirection: d })}
-              >
-                {d}
               </button>
             ))}
           </div>

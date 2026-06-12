@@ -28,10 +28,11 @@ import { NetworkStats, NetworkStatsMore } from "@/components/NetworkStats";
 import { Jellyfin, JellyfinMore } from "@/components/Jellyfin";
 import { ArrStack, ArrStackMore } from "@/components/ArrStack";
 import { StorageApps } from "@/components/StorageApps";
-import { NutBot } from "@/components/NutBot";
+import { NutBotFaceWidget } from "@/components/widgets/NutBotFaceWidget";
+import { NutBotTerminal } from "@/components/NutBotTerminal";
 import { IdentityBlock } from "@/components/IdentityBlock";
-import { NowPlaying, NowPlayingMore } from "@/components/NowPlaying";
-import { CurrentlyPlaying, CurrentlyPlayingMore } from "@/components/CurrentlyPlaying";
+import { NowPlaying } from "@/components/NowPlaying";
+import { CurrentlyPlaying } from "@/components/CurrentlyPlaying";
 import { GitHubActivity, GitHubActivityMore } from "@/components/GitHubActivity";
 import { SessionTracker, SessionTrackerMore } from "@/components/SessionTracker";
 import { HubSettings, HubSettingsMore } from "@/components/widgets/HubSettings";
@@ -45,7 +46,9 @@ import { HubSettings, HubSettingsMore } from "@/components/widgets/HubSettings";
 
 export type WidgetSize = "S" | "M" | "L";
 export type Orientation = "h" | "v";
-export type ExpandMode = "none" | "hover" | "overlay";
+/** "grow" bumps the widget one size tier on hover and cascades a shrink to
+    whichever neighbor(s) it displaces — see lib/gridCascade.ts */
+export type ExpandMode = "none" | "hover" | "overlay" | "grow";
 export type ExpandDirection = "down" | "up";
 
 export type SettingsField =
@@ -111,6 +114,18 @@ export const SPAN_MAP: Record<`${WidgetSize}-${Orientation}`, [cols: number, row
   "L-h": [3, 2],
   "L-v": [2, 3],
 };
+
+const SIZE_LADDER: WidgetSize[] = ["S", "M", "L"];
+
+/** one size tier up; "L" is the ceiling and maps to itself */
+export function nextSize(size: WidgetSize): WidgetSize {
+  return SIZE_LADDER[Math.min(SIZE_LADDER.indexOf(size) + 1, SIZE_LADDER.length - 1)];
+}
+
+/** one size tier down; "S" is the floor and maps to itself */
+export function prevSize(size: WidgetSize): WidgetSize {
+  return SIZE_LADDER[Math.max(SIZE_LADDER.indexOf(size) - 1, 0)];
+}
 
 export const WIDGETS = {
   clock: {
@@ -242,11 +257,12 @@ export const WIDGETS = {
     id: "nutbot",
     title: "nutbot v1.4",
     icon: SquareTerminal,
-    component: NutBot,
-    sizes: ["M", "L"],
+    component: NutBotFaceWidget,
+    expandedComponent: NutBotTerminal,
+    sizes: ["S", "M"],
     orientations: ["h", "v"],
-    expandModes: ["none"],
-    defaults: { size: "M", orientation: "v", expand: "none" },
+    expandModes: ["none", "overlay"],
+    defaults: { size: "S", orientation: "h", expand: "overlay" },
   },
   identity: {
     id: "identity",
@@ -264,11 +280,10 @@ export const WIDGETS = {
     title: "now playing",
     icon: Music,
     component: NowPlaying,
-    expandedComponent: NowPlayingMore,
     sizes: ["S", "M", "L"],
     orientations: ["h"],
-    expandModes: ["none", "hover", "overlay"],
-    defaults: { size: "M", orientation: "h", expand: "hover" },
+    expandModes: ["none", "grow"],
+    defaults: { size: "M", orientation: "h", expand: "grow" },
     flags: { customHeader: true, className: "spotify-capsule" },
   },
   "currently-playing": {
@@ -276,11 +291,10 @@ export const WIDGETS = {
     title: "currently playing",
     icon: Gamepad2,
     component: CurrentlyPlaying,
-    expandedComponent: CurrentlyPlayingMore,
     sizes: ["S", "M", "L"],
     orientations: ["h", "v"],
-    expandModes: ["none", "hover", "overlay"],
-    defaults: { size: "M", orientation: "v", expand: "hover" },
+    expandModes: ["none", "grow"],
+    defaults: { size: "M", orientation: "v", expand: "grow" },
     flags: { customHeader: true, className: "steam-card" },
   },
   github: {

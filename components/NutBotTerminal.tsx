@@ -1,5 +1,9 @@
 "use client";
 
+// NutBot's full terminal — log ticker, mock shell tabs, and the optional
+// xterm real shell. Lives in the face widget's click-to-expand overlay, so
+// xterm only mounts when the terminal is actually open.
+
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X } from "lucide-react";
@@ -8,7 +12,7 @@ import { RealShell } from "@/components/RealShell";
 
 const SHELL_WS_URL = process.env.NEXT_PUBLIC_NUTBOT_SHELL_URL;
 
-const LOG_MESSAGES = [
+export const LOG_MESSAGES = [
   "[ok] homelab uplink ... stable",
   "[ok] spotify.auth ... connected",
   "[ok] github.sync ... up to date",
@@ -51,7 +55,7 @@ function runCommand(raw: string): string | null {
 type ShellState = { history: { cmd: string; output: string }[]; input: string };
 type LogLine = { id: number; text: string };
 
-export function NutBot() {
+export function NutBotTerminal() {
   const [logLines, setLogLines] = useState<LogLine[]>([]);
   const logIndex = useRef(0);
   const logId = useRef(0);

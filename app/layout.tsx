@@ -34,7 +34,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("nutmag-theme");var h=new Date().getHours();if(t==="light"||(t==="auto"&&h>=6&&h<20)){document.documentElement.dataset.theme="light";}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("nutmag-theme");var h=new Date().getHours();if(t==="light"||(t==="auto"&&h>=6&&h<20)){document.documentElement.dataset.theme="light";}var p=localStorage.getItem("nutmag-palette");if(p&&p!=="ember"){document.documentElement.dataset.palette=p;}}catch(e){}})();`,
           }}
         />
       </head>

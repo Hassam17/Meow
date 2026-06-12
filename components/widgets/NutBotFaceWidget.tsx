@@ -1,0 +1,43 @@
+"use client";
+
+// NutBot's compact home: just the animated face and a one-line status
+// ticker. Clicking the card opens the full terminal overlay
+// (NutBotTerminal, wired as the manifest's expandedComponent).
+
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { NutBotFace } from "@/components/NutBotFace";
+import { LOG_MESSAGES } from "@/components/NutBotTerminal";
+
+export function NutBotFaceWidget() {
+  const [line, setLine] = useState(LOG_MESSAGES[LOG_MESSAGES.length - 1]);
+  const index = useRef(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setLine(LOG_MESSAGES[index.current % LOG_MESSAGES.length]);
+      index.current += 1;
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="nutbot-mini">
+      <NutBotFace />
+      <div className="nutbot-mini-ticker" aria-live="off">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={line}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+          >
+            {line}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <div className="nutbot-mini-hint">click to open terminal</div>
+    </div>
+  );
+}

@@ -1,10 +1,14 @@
-// Shared theme store — light / dark / auto (auto follows time of day).
-// Backed by the same "nutmag-theme" localStorage key the pre-paint script
-// in app/layout.tsx reads, so there's no flash on load. Client-side only.
+// Shared theme store — light / dark / auto mode (auto follows time of day)
+// plus the color palette pack. Backed by the same "nutmag-theme" /
+// "nutmag-palette" localStorage keys the pre-paint script in app/layout.tsx
+// reads, so there's no flash on load. Client-side only.
+
+import { DEFAULT_PALETTE, isPaletteId, type PaletteId } from "@/config/themes";
 
 export type ThemeMode = "light" | "dark" | "auto";
 
 const STORAGE_KEY = "nutmag-theme";
+const PALETTE_KEY = "nutmag-palette";
 const listeners = new Set<() => void>();
 
 export function getThemeMode(): ThemeMode {
@@ -38,6 +42,26 @@ export function applyTheme() {
 export function setThemeMode(mode: ThemeMode) {
   localStorage.setItem(STORAGE_KEY, mode);
   applyTheme();
+  listeners.forEach((listener) => listener());
+}
+
+export function getPalette(): PaletteId {
+  const stored = localStorage.getItem(PALETTE_KEY);
+  return isPaletteId(stored) ? stored : DEFAULT_PALETTE;
+}
+
+export function getServerPalette(): PaletteId {
+  return DEFAULT_PALETTE;
+}
+
+export function setPalette(id: PaletteId) {
+  localStorage.setItem(PALETTE_KEY, id);
+  // the default palette is the attribute-less :root tokens
+  if (id === DEFAULT_PALETTE) {
+    delete document.documentElement.dataset.palette;
+  } else {
+    document.documentElement.dataset.palette = id;
+  }
   listeners.forEach((listener) => listener());
 }
 

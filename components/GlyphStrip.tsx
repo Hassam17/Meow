@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { usePolling } from "@/lib/usePolling";
 import type { HomelabStatus } from "@/lib/homelab";
 
 export function GlyphStrip() {
-  const [data, setData] = useState<HomelabStatus | null>(null);
+  const { data } = usePolling<HomelabStatus>("/api/homelab", 60_000);
 
-  useEffect(() => {
-    const load = () =>
-      fetch("/api/homelab")
-        .then((r) => r.json())
-        .then(setData)
-        .catch(() => {});
-    load();
-    const id = setInterval(load, 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const anyDown = data ? data.services.some((s) => s.status === "down") : false;
+  const anyDown = (data?.services ?? []).some((s) => s.status === "down");
   const color = anyDown ? "var(--accent-orange)" : "var(--accent-cyan)";
 
   return (

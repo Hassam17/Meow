@@ -106,15 +106,16 @@ export function CurrentlyPlaying() {
 
 export function CurrentlyPlayingMore() {
   const { data } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);
+  const recentlyPlayed = data?.recentlyPlayed ?? [];
 
-  if (!data || data.recentlyPlayed.length === 0) {
+  if (recentlyPlayed.length === 0) {
     return <div className="block-sub">nothing played recently</div>;
   }
 
   return (
     <>
       <div className="more-head">last 2 weeks</div>
-      {data.recentlyPlayed.map((g) => (
+      {recentlyPlayed.map((g) => (
         <div className="more-row" key={g.gameName}>
           <span>{g.gameName}</span>
           <span className="more-meta">

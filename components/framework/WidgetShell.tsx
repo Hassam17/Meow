@@ -6,6 +6,7 @@
 // render their data and read placement state through useWidget().
 
 import { useRef, useState, type MouseEvent, type KeyboardEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   resolveSettings,
   type ExpandDirection,
@@ -16,7 +17,6 @@ import {
   type WidgetSize,
 } from "@/config/widgets";
 import { WidgetContext } from "@/components/framework/WidgetContext";
-import { WidgetFlyout } from "@/components/framework/WidgetFlyout";
 import { WidgetOverlay } from "@/components/framework/WidgetOverlay";
 
 /** the per-instance slice the shell cares about; missing fields fall back
@@ -43,7 +43,6 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
   const size = config?.size ?? manifest.defaults.size;
   const orientation = config?.orientation ?? manifest.defaults.orientation;
   const settings = resolveSettings(manifest, config?.settings);
-  const expandDirection = config?.expandDirection ?? "down";
   // an expansion mode is only honored when the widget ships expanded content
   const expand: ExpandMode =
     manifest.expandedComponent ? (config?.expand ?? manifest.defaults.expand) : "none";
@@ -51,7 +50,6 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
 
   function hoverEnter() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -93,7 +91,6 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
   return (
     <div
       id={manifest.id}
-      ref={anchorRef}
       className={`capsule${flyoutOpen ? " open" : ""}`}
       onMouseEnter={expand === "hover" ? hoverEnter : undefined}
       onMouseLeave={expand === "hover" ? hoverLeave : undefined}
@@ -117,22 +114,28 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
           )}
           <WidgetContext.Provider value={{ ...ctx, expanded }}>
             <Content />
+            {/* hover expansion lives inside the card — the animated height
+                grows the card, the grid row grows with it, and surrounding
+                widgets reflow to make room (the original capsule feel) */}
+            {expand === "hover" && Expanded && (
+              <AnimatePresence initial={false}>
+                {flyoutOpen && (
+                  <motion.div
+                    className="inline-expand"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <div className="inline-expand-body">
+                      <Expanded />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </WidgetContext.Provider>
         </div>
-      )}
-
-      {expand === "hover" && Expanded && (
-        <WidgetFlyout
-          anchor={anchorRef.current}
-          open={flyoutOpen}
-          direction={expandDirection}
-          onEnter={hoverEnter}
-          onLeave={hoverLeave}
-        >
-          <WidgetContext.Provider value={{ ...ctx, expanded: true }}>
-            <Expanded />
-          </WidgetContext.Provider>
-        </WidgetFlyout>
       )}
 
       {expand === "overlay" && Expanded && (
