@@ -201,6 +201,12 @@ body {
   flex-shrink: 0;
 }
 
+/* each column is a size container so pairs inside can stack based on the
+   width the column actually has (it varies — tracker hover, max-width cap) */
+.frame-col {
+  container-type: inline-size;
+}
+
 /* ─── pairs + blocks ("sticker" cards) ──────────────────────────── */
 
 .pair {
@@ -778,7 +784,9 @@ body {
 
 .steam-card-grid {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(218px, 0.92fr);
+  /* auto-fit: the two panes sit side by side only when both get ≥218px,
+     otherwise they stack — the panes must never crush below min and clip */
+  grid-template-columns: repeat(auto-fit, minmax(218px, 1fr));
   gap: 24px;
   min-height: 170px;
 }
@@ -1704,7 +1712,10 @@ body {
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .tracker-col:hover {
+  /* the column itself is full viewport height, so :hover on it would also
+     fire in the empty area below the card — expand only when the card
+     itself is hovered */
+  .tracker-col:has(.block:hover) {
     width: 555px;
   }
 }
@@ -1725,7 +1736,7 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .tracker-col:hover .tracker-chart-pane {
+  .tracker-col:has(.block:hover) .tracker-chart-pane {
     width: 240px;
     opacity: 1;
     margin-right: 14px;
@@ -1938,4 +1949,88 @@ body {
 .report-btn:hover {
   background: var(--accent-cyan);
   color: var(--badge-text);
+}
+
+/* ─── layout edit mode ───────────────────────────────────────── */
+
+.widget-slot {
+  position: relative;
+}
+
+/* dashed outline on every block while rearranging */
+.widget-slot.editing .block,
+.widget-slot.editing .namecard {
+  outline: 1.5px dashed var(--accent-cyan);
+  outline-offset: 3px;
+}
+
+.widget-slot.dragging {
+  opacity: 0.55;
+  z-index: 30;
+}
+
+.drag-handle {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--accent-cyan);
+  background: var(--bg-card);
+  color: var(--accent-cyan);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.theme-toggle.edit-active {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+/* ─── media pair (spotify + steam) ────────────────────────────── */
+
+/* side by side with no hover width-shift — both cards' internal grids
+   collapse on their own at narrow widths, but shifting width on hover
+   makes the shrunken sibling clip mid-animation */
+.pair-media:hover .block,
+.pair-media .block:hover {
+  flex-grow: 1;
+}
+
+.pair-media:hover .spotify-capsule,
+.pair-media .spotify-capsule:hover {
+  flex-grow: 0.82;
+}
+
+/* stack full-width only when the column truly can't fit both cards at
+   their internal minimums. Queries .frame-col width, so this also reacts
+   when the tracker column expands and borrows width from the center. */
+@container (max-width: 560px) {
+  .pair-media {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pair-media .block,
+  .pair-media:hover .block,
+  .pair-media .block:hover,
+  .pair-media:has(.spotify-capsule) .spotify-capsule,
+  .pair-media:has(.spotify-capsule:hover) .block,
+  .pair-media:has(.spotify-capsule:hover) .spotify-capsule,
+  .pair-media:has(.spotify-capsule:focus-within) .block,
+  .pair-media:has(.spotify-capsule:focus-within) .spotify-capsule {
+    flex-grow: 0;
+    flex-basis: auto;
+    width: 100%;
+  }
 }
