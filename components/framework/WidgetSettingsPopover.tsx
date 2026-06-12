@@ -1,0 +1,223 @@
+"use client";
+
+// Per-widget configuration popover, opened from the gear button that appears
+// on each card in edit mode. The Placement section is the same for every
+// widget (limited to what its manifest supports); the Widget section is
+// auto-generated from the manifest's settings schema.
+
+import { useEffect, useRef } from "react";
+import { EyeOff, X } from "lucide-react";
+import type { SettingsField, WidgetManifest } from "@/config/widgets";
+import type { WidgetInstance } from "@/lib/layout";
+import { useLayout } from "@/components/LayoutProvider";
+
+const SIZE_LABELS = { S: "small", M: "medium", L: "large" } as const;
+const ORIENTATION_LABELS = { h: "horizontal", v: "vertical" } as const;
+const EXPAND_LABELS = { none: "static", hover: "hover", overlay: "click" } as const;
+
+function SchemaField({
+  field,
+  value,
+  onChange,
+}: {
+  field: SettingsField;
+  value: string | number | boolean;
+  onChange: (value: string | number | boolean) => void;
+}) {
+  switch (field.type) {
+    case "toggle":
+      return (
+        <label className="wset-row">
+          <span>{field.label}</span>
+          <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
+        </label>
+      );
+    case "select":
+      return (
+        <label className="wset-row">
+          <span>{field.label}</span>
+          <select className="wset-select" value={String(value)} onChange={(e) => onChange(e.target.value)}>
+            {field.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    case "number":
+      return (
+        <label className="wset-row">
+          <span>{field.label}</span>
+          <input
+            className="wset-input"
+            type="number"
+            min={field.min}
+            max={field.max}
+            value={Number(value)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              if (!Number.isNaN(n)) onChange(n);
+            }}
+          />
+        </label>
+      );
+    case "text":
+      return (
+        <label className="wset-row">
+          <span>{field.label}</span>
+          <input
+            className="wset-input"
+            type="text"
+            placeholder={field.placeholder}
+            value={String(value)}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
+      );
+  }
+}
+
+export function WidgetSettingsPopover({
+  manifest,
+  instance,
+  onClose,
+}: {
+  manifest: WidgetManifest;
+  instance: WidgetInstance;
+  onClose: () => void;
+}) {
+  const { updateInstance } = useLayout();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDown(e: PointerEvent) {
+      const target = e.target as Element;
+      // the gear button toggles on click — closing here too would reopen it
+      if (target.closest(".gear-btn")) return;
+      if (panelRef.current && !panelRef.current.contains(target)) onClose();
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const expandModes = manifest.expandedComponent ? manifest.expandModes : (["none"] as const);
+
+  return (
+    <div ref={panelRef} className="wset-panel">
+      <div className="wset-head">
+        <span className="wset-title">{manifest.title}</span>
+        <button type="button" className="overlay-close" onClick={onClose} aria-label="close widget settings">
+          <X size={11} strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className="wset-section">placement</div>
+
+      <div className="wset-row">
+        <span>size</span>
+        <div className="seg-row">
+          {manifest.sizes.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`seg-btn${instance.size === s ? " active" : ""}`}
+              onClick={() => updateInstance(instance.id, { size: s })}
+              title={SIZE_LABELS[s]}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {manifest.orientations.length > 1 && (
+        <div className="wset-row">
+          <span>shape</span>
+          <div className="seg-row">
+            {manifest.orientations.map((o) => (
+              <button
+                key={o}
+                type="button"
+                className={`seg-btn${instance.orientation === o ? " active" : ""}`}
+                onClick={() => updateInstance(instance.id, { orientation: o })}
+                title={ORIENTATION_LABELS[o]}
+              >
+                {ORIENTATION_LABELS[o]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {expandModes.length > 1 && (
+        <div className="wset-row">
+          <span>expand</span>
+          <div className="seg-row">
+            {expandModes.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`seg-btn${instance.expand === m ? " active" : ""}`}
+                onClick={() => updateInstance(instance.id, { expand: m })}
+              >
+                {EXPAND_LABELS[m]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {instance.expand === "hover" && (
+        <div className="wset-row">
+          <span>direction</span>
+          <div className="seg-row">
+            {(["down", "up"] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`seg-btn${instance.expandDirection === d ? " active" : ""}`}
+                onClick={() => updateInstance(instance.id, { expandDirection: d })}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="wset-hide-btn"
+        onClick={() => {
+          updateInstance(instance.id, { hidden: true });
+          onClose();
+        }}
+      >
+        <EyeOff size={12} strokeWidth={1.75} />
+        hide widget
+      </button>
+
+      {(manifest.settings?.length ?? 0) > 0 && (
+        <>
+          <div className="wset-section">widget</div>
+          {manifest.settings!.map((field) => (
+            <SchemaField
+              key={field.key}
+              field={field}
+              value={instance.settings[field.key] ?? field.default}
+              onChange={(value) => updateInstance(instance.id, { settings: { [field.key]: value } })}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}

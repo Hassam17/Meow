@@ -1,133 +1,143 @@
 "use client";
 
+import { useState } from "react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCorners,
-  useDroppable,
   useSensor,
   useSensors,
-  type DragEndEvent,
   type DragOverEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { GripHorizontal } from "lucide-react";
-import { COLUMNS, WIDGETS, type ColumnDef, type WidgetDef, type WidgetId } from "@/config/widgets";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
+import { GripHorizontal, Settings2 } from "lucide-react";
+import { SPAN_MAP, WIDGETS, type WidgetId } from "@/config/widgets";
+import type { WidgetInstance } from "@/lib/layout";
+import { useGridColumns } from "@/lib/useGridColumns";
 import { useLayout } from "@/components/LayoutProvider";
+import { WidgetShell } from "@/components/framework/WidgetShell";
+import { WidgetSettingsPopover } from "@/components/framework/WidgetSettingsPopover";
 
-function SortableWidget({ id, editMode }: { id: WidgetId; editMode: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
+function spanStyle(instance: WidgetInstance, gridCols: number) {
+  const [cols, rows] = SPAN_MAP[`${instance.size}-${instance.orientation}`];
+  return {
+    gridColumn: `span ${Math.min(cols, gridCols)}`,
+    gridRow: gridCols === 1 ? undefined : `span ${rows}`,
+  };
+}
+
+function GridWidget({
+  instance,
+  editMode,
+  gridCols,
+}: {
+  instance: WidgetInstance;
+  editMode: boolean;
+  gridCols: number;
+}) {
+  // no sortable transform strategy — with variable spans + dense flow the
+  // grid itself reflows on live reorder; the DragOverlay carries the visual
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+    id: instance.id,
     disabled: !editMode,
   });
-  const Widget = WIDGETS[id].component;
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  if (!editMode && settingsOpen) setSettingsOpen(false);
 
   return (
     <div
       ref={setNodeRef}
       className={`widget-slot${editMode ? " editing" : ""}${isDragging ? " dragging" : ""}`}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={spanStyle(instance, gridCols)}
     >
       {editMode && (
-        <button type="button" className="drag-handle" aria-label={`move ${id} widget`} {...attributes} {...listeners}>
-          <GripHorizontal size={12} strokeWidth={1.75} />
-        </button>
+        <>
+          <button
+            type="button"
+            className="drag-handle"
+            aria-label={`move ${instance.id} widget`}
+            {...attributes}
+            {...listeners}
+          >
+            <GripHorizontal size={12} strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            className="gear-btn"
+            aria-label={`configure ${instance.id} widget`}
+            onClick={() => setSettingsOpen((open) => !open)}
+          >
+            <Settings2 size={12} strokeWidth={1.75} />
+          </button>
+          {settingsOpen && (
+            <WidgetSettingsPopover
+              manifest={WIDGETS[instance.id]}
+              instance={instance}
+              onClose={() => setSettingsOpen(false)}
+            />
+          )}
+        </>
       )}
-      <Widget />
-    </div>
-  );
-}
-
-function Column({ col, widgets, editMode }: { col: ColumnDef; widgets: WidgetId[]; editMode: boolean }) {
-  // the column itself is droppable so widgets can be dragged into it even
-  // when it's empty (no sortable items to target)
-  const { setNodeRef } = useDroppable({ id: col.id, disabled: !editMode });
-
-  return (
-    <div ref={setNodeRef} className={`frame-col flex w-full flex-col gap-2.5 ${col.className}`}>
-      <SortableContext items={widgets} strategy={verticalListSortingStrategy}>
-        {widgets.map((id) => (
-          <SortableWidget key={id} id={id} editMode={editMode} />
-        ))}
-      </SortableContext>
+      <WidgetShell manifest={WIDGETS[instance.id]} config={instance} />
     </div>
   );
 }
 
 export function Dashboard() {
-  const { layout, setLayout, editMode } = useLayout();
+  const { layout, reorderWidget, editMode } = useLayout();
+  const gridCols = useGridColumns();
+  const [activeId, setActiveId] = useState<WidgetId | null>(null);
 
   // small activation distance so plain clicks on the handle don't start a drag
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-  function findColumn(id: string): string | null {
-    if (id in layout) return id;
-    for (const [colId, ids] of Object.entries(layout)) {
-      if (ids.includes(id as WidgetId)) return colId;
-    }
-    return null;
+  const visible = layout.widgets.filter((w) => !w.hidden);
+  const activeInstance = activeId ? visible.find((w) => w.id === activeId) : null;
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as WidgetId);
   }
 
-  function canDrop(widgetId: WidgetId, colId: string): boolean {
-    const { minColWidth: min }: WidgetDef = WIDGETS[widgetId];
-    if (!min) return true;
-    const width = COLUMNS.find((c) => c.id === colId)?.width;
-    return width === null || width === undefined || width >= min;
-  }
-
-  // cross-column moves happen live while dragging so the columns reflow
-  // under the pointer; same-column reordering is settled in onDragEnd
+  // reorder live while dragging so the grid reflows under the pointer
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
-
-    const activeId = active.id as WidgetId;
-    const from = findColumn(String(active.id));
-    const to = findColumn(String(over.id));
-    if (!from || !to || from === to) return;
-    if (!canDrop(activeId, to)) return;
-
-    setLayout((prev) => {
-      const fromItems = prev[from].filter((id) => id !== activeId);
-      const toItems = prev[to].filter((id) => id !== activeId);
-      const overIndex = toItems.indexOf(over.id as WidgetId);
-      toItems.splice(overIndex >= 0 ? overIndex : toItems.length, 0, activeId);
-      return { ...prev, [from]: fromItems, [to]: toItems };
-    });
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over) return;
-
-    const from = findColumn(String(active.id));
-    const to = findColumn(String(over.id));
-    if (!from || !to || from !== to) return;
-
-    const oldIndex = layout[from].indexOf(active.id as WidgetId);
-    const newIndex = layout[from].indexOf(over.id as WidgetId);
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-
-    setLayout((prev) => ({ ...prev, [from]: arrayMove(prev[from], oldIndex, newIndex) }));
+    if (!over || active.id === over.id) return;
+    reorderWidget(active.id as WidgetId, over.id as WidgetId);
   }
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
+      onDragEnd={() => setActiveId(null)}
+      onDragCancel={() => setActiveId(null)}
     >
       <div className={`mx-auto max-w-[1800px] px-5 py-6${editMode ? " layout-editing" : ""}`}>
         <div className="frame">
-          <div className="frame-inner flex flex-col-reverse gap-5 lg:flex-row">
-            {COLUMNS.map((col) => (
-              <Column key={col.id} col={col} widgets={layout[col.id] ?? []} editMode={editMode} />
-            ))}
+          <div className="frame-inner">
+            <SortableContext items={visible.map((w) => w.id)} strategy={() => null}>
+              <div className="widget-grid">
+                {visible.map((instance) => (
+                  <GridWidget key={instance.id} instance={instance} editMode={editMode} gridCols={gridCols} />
+                ))}
+              </div>
+            </SortableContext>
           </div>
         </div>
       </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeInstance && (
+          <div className="widget-slot drag-preview">
+            <WidgetShell manifest={WIDGETS[activeInstance.id]} config={activeInstance} />
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }

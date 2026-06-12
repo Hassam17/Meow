@@ -1,64 +1,49 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Music, Pause, Play } from "lucide-react";
+import { usePolling } from "@/lib/usePolling";
+import { timeAgo } from "@/lib/format";
 import type { NowPlaying as NowPlayingData, PlayerAction } from "@/lib/spotify";
 
-function timeAgo(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+const POLL_URL = "/api/now-playing";
+const POLL_MS = 30_000;
+
+/** returns an error message, or null on success */
+async function spotifyControl(action: PlayerAction, uri: string | undefined, refresh: () => void) {
+  try {
+    const res = await fetch("/api/spotify-control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, uri }),
+    });
+    const result = (await res.json()) as { ok: boolean; error?: string };
+    if (!result.ok) return result.error ?? "control failed";
+    // Give Spotify a beat to apply the change, then refresh the capsule
+    setTimeout(refresh, 700);
+    return null;
+  } catch {
+    return "control request failed";
+  }
 }
 
 export function NowPlaying() {
-  const [data, setData] = useState<NowPlayingData | null>(null);
+  const { data, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
   const [controlError, setControlError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    fetch("/api/now-playing")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 30_000);
-    return () => clearInterval(id);
-  }, [load]);
-
-  async function control(action: PlayerAction, uri?: string) {
+  async function control(action: PlayerAction) {
     setControlError(null);
-    try {
-      const res = await fetch("/api/spotify-control", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, uri }),
-      });
-      const result = (await res.json()) as { ok: boolean; error?: string };
-      if (!result.ok) {
-        setControlError(result.error ?? "control failed");
-        return;
-      }
-      // Give Spotify a beat to apply the change, then refresh the capsule
-      setTimeout(load, 700);
-    } catch {
-      setControlError("control request failed");
-    }
+    setControlError(await spotifyControl(action, undefined, refresh));
   }
 
-  const showQueue = !!data?.isPlaying && (data?.queue.length ?? 0) > 0;
   const progressPercent =
     data?.progressMs != null && data.durationMs
       ? Math.min(100, Math.max(0, (data.progressMs / data.durationMs) * 100))
       : 0;
 
   return (
-    <div className="block spotify-capsule">
+    <>
       <div className="spotify-label">
         <Music size={14} strokeWidth={1.75} />
         now playing
@@ -150,41 +135,51 @@ export function NowPlaying() {
       </AnimatePresence>
 
       {controlError && <div className="control-error">{controlError}</div>}
+    </>
+  );
+}
 
-      {data && (showQueue || data.recentTracks.length > 0) && (
-        <div className="more-panel spotify-more">
-          {showQueue ? (
-            <>
-              <div className="more-head">Recently Played / Queue</div>
-              {data.queue.map((t, i) => (
-                <div className="more-row" key={i}>
-                  <span>{t.trackName}</span>
-                  <span className="more-meta">{t.artist}</span>
-                </div>
-              ))}
-            </>
-          ) : (
-            <>
-              <div className="more-head">Recently Played / Queue</div>
-              {data.recentTracks.map((t, i) => (
-                <div
-                  className="more-row clickable"
-                  key={i}
-                  onClick={() => control("play-track", t.uri)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") control("play-track", t.uri);
-                  }}
-                >
-                  <span>{t.trackName}</span>
-                  <span className="more-meta">{t.artist}</span>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </div>
+export function NowPlayingMore() {
+  const { data, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
+  const [controlError, setControlError] = useState<string | null>(null);
+
+  async function playTrack(uri: string) {
+    setControlError(null);
+    setControlError(await spotifyControl("play-track", uri, refresh));
+  }
+
+  const showQueue = !!data?.isPlaying && (data?.queue.length ?? 0) > 0;
+
+  if (!data || (!showQueue && data.recentTracks.length === 0)) {
+    return <div className="block-sub">no recent tracks</div>;
+  }
+
+  return (
+    <>
+      <div className="more-head">Recently Played / Queue</div>
+      {showQueue
+        ? data.queue.map((t, i) => (
+            <div className="more-row" key={i}>
+              <span>{t.trackName}</span>
+              <span className="more-meta">{t.artist}</span>
+            </div>
+          ))
+        : data.recentTracks.map((t, i) => (
+            <div
+              className="more-row clickable"
+              key={i}
+              onClick={() => playTrack(t.uri)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") playTrack(t.uri);
+              }}
+            >
+              <span>{t.trackName}</span>
+              <span className="more-meta">{t.artist}</span>
+            </div>
+          ))}
+      {controlError && <div className="control-error">{controlError}</div>}
+    </>
   );
 }

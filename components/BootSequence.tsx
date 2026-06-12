@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getPrefs } from "@/lib/prefs";
 
 // Reading sessionStorage during render would diverge from the server's render
 // (which always sees "not booted"), causing a hydration mismatch. Defer the
@@ -34,7 +35,7 @@ export function BootSequence() {
   const [done, setDone] = useState(false);
 
   useIsomorphicLayoutEffect(() => {
-    if (sessionStorage.getItem("nutmag-booted")) {
+    if (sessionStorage.getItem("nutmag-booted") || !getPrefs().bootSequence) {
       setDone(true);
     }
   }, []);

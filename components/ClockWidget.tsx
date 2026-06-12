@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Clock, Moon, Pause, Play, Sun, SunMoon } from "lucide-react";
+import { Moon, Pause, Play, Sun, SunMoon } from "lucide-react";
 import {
   applyTheme,
   getServerThemeMode,
@@ -10,6 +10,7 @@ import {
   subscribeTheme,
   type ThemeMode,
 } from "@/lib/theme";
+import { useWidget } from "@/components/framework/WidgetContext";
 
 const SUNRISE_MINS = 5 * 60 + 12;
 const SUNSET_MINS = 19 * 60 + 48;
@@ -50,6 +51,7 @@ export function ClockWidget() {
   const [lofiLabel, setLofiLabel] = useState("lofi hip-hop radio");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
+  const { settings } = useWidget();
 
   useEffect(() => {
     const tick = () => {
@@ -98,12 +100,7 @@ export function ClockWidget() {
   }
 
   return (
-    <div className="block">
-      <div className="block-label">
-        <Clock size={14} strokeWidth={1.75} />
-        clock &amp; date
-      </div>
-
+    <>
       <div className="clock-time">
         {now ? `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}` : "--:--:--"}
       </div>
@@ -120,6 +117,7 @@ export function ClockWidget() {
         <span>sunset 19:48</span>
       </div>
 
+      {settings.showLofi === true && (
       <div className="lofi-row">
         <button
           type="button"
@@ -134,6 +132,7 @@ export function ClockWidget() {
         </div>
         <span className="lofi-label">{lofiLabel}</span>
       </div>
+      )}
 
       <div className="theme-row">
         {THEME_OPTIONS.map(({ mode: m, Icon }) => (
@@ -149,7 +148,7 @@ export function ClockWidget() {
         ))}
       </div>
 
-      {calendar && (
+      {settings.showCalendar === true && calendar && (
         <div className="mini-cal">
           <div className="cal-header">
             <span>{calendar.title}</span>
@@ -169,6 +168,6 @@ export function ClockWidget() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -1,44 +1,154 @@
-// Shared layout store — which widgets live in which column, in what order.
-// Mirrors the lib/theme.ts external-store pattern: server renders the
-// default arrangement, the client lazily reads the saved one from
-// localStorage["nutmag-layout"] (written when the layout is locked in).
+// Shared layout store — a single ordered list of widget instances, each
+// carrying its grid placement config (size, orientation, expansion) and
+// widget-specific settings. Mirrors the lib/theme.ts external-store pattern:
+// the server renders the defaults, the client lazily reads the saved state
+// from localStorage["nutmag-layout"]. Every mutation persists immediately.
 
-import { DEFAULT_LAYOUT, WIDGETS, type LayoutState, type WidgetId } from "@/config/widgets";
+import {
+  DEFAULT_ORDER,
+  WIDGETS,
+  resolveSettings,
+  type ExpandDirection,
+  type ExpandMode,
+  type Orientation,
+  type SettingsValues,
+  type WidgetId,
+  type WidgetManifest,
+  type WidgetSize,
+} from "@/config/widgets";
+
+export type WidgetInstance = {
+  id: WidgetId;
+  size: WidgetSize;
+  orientation: Orientation;
+  expand: ExpandMode;
+  expandDirection: ExpandDirection;
+  hidden: boolean;
+  settings: SettingsValues;
+};
+
+export type LayoutState = {
+  version: 2;
+  /** list order = grid placement order (dense auto-flow back-fills gaps) */
+  widgets: WidgetInstance[];
+};
 
 const STORAGE_KEY = "nutmag-layout";
 const listeners = new Set<() => void>();
 
-let layout: LayoutState | null = null;
+/* widgets the user must never lose access to (the framework's own controls
+   live here once the hub-settings widget exists) */
+const ALWAYS_VISIBLE: string[] = ["hub-settings"];
 
-/* a stored layout may predate widgets added since (or contain ids that no
-   longer exist) — keep what's valid, send everything else to its default
-   column so no widget can ever disappear */
+let layout: LayoutState | null = null;
+let defaultLayout: LayoutState | null = null;
+
+export function defaultInstance(id: WidgetId): WidgetInstance {
+  const manifest = WIDGETS[id];
+  const defaults: WidgetManifest["defaults"] = manifest.defaults;
+  return {
+    id,
+    size: defaults.size,
+    orientation: defaults.orientation,
+    expand: defaults.expand,
+    expandDirection: "down",
+    hidden: defaults.hidden ?? false,
+    settings: resolveSettings(manifest),
+  };
+}
+
+function buildDefaultLayout(): LayoutState {
+  if (!defaultLayout) {
+    defaultLayout = { version: 2, widgets: DEFAULT_ORDER.map(defaultInstance) };
+  }
+  return defaultLayout;
+}
+
+/* v1 layouts were Record<columnId, widgetId[]>; flatten them in the old
+   visual column order and expand the ids of the dissolved pair wrappers */
+const V1_COLUMN_ORDER = ["left", "services", "center", "tracker"];
+const V1_PAIR_IDS: Record<string, WidgetId[]> = {
+  media: ["now-playing", "currently-playing"],
+  "disk-network": ["disk-storage", "network-stats"],
+};
+
+function migrateV1(stored: Record<string, unknown>): WidgetId[] {
+  const order: WidgetId[] = [];
+  const keys = [...V1_COLUMN_ORDER, ...Object.keys(stored).filter((k) => !V1_COLUMN_ORDER.includes(k))];
+  for (const key of keys) {
+    const ids = stored[key];
+    if (!Array.isArray(ids)) continue;
+    for (const raw of ids) {
+      if (typeof raw !== "string") continue;
+      const expanded = V1_PAIR_IDS[raw] ?? (raw in WIDGETS ? [raw as WidgetId] : []);
+      for (const id of expanded) {
+        if (!order.includes(id)) order.push(id);
+      }
+    }
+  }
+  return order;
+}
+
+function clamp<T>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+/* a stored layout may predate widgets added since (or contain ids/values
+   that no longer exist) — keep what's valid, fall back per-field to the
+   manifest defaults, and append missing widgets so none can ever disappear */
 function sanitize(raw: unknown): LayoutState | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const stored = raw as Record<string, unknown>;
+
   const seen = new Set<WidgetId>();
-  const result: LayoutState = {};
+  const widgets: WidgetInstance[] = [];
 
-  for (const colId of Object.keys(DEFAULT_LAYOUT)) {
-    const ids = Array.isArray(stored[colId]) ? stored[colId] : [];
-    result[colId] = ids.filter(
-      (id): id is WidgetId => typeof id === "string" && id in WIDGETS && !seen.has(id as WidgetId),
+  function push(id: WidgetId, item?: Record<string, unknown>) {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const manifest = WIDGETS[id];
+    const base = defaultInstance(id);
+    widgets.push(
+      item
+        ? {
+            id,
+            size: clamp(item.size, manifest.sizes, base.size),
+            orientation: clamp(item.orientation, manifest.orientations, base.orientation),
+            expand: clamp(item.expand, manifest.expandModes, base.expand),
+            expandDirection: clamp(item.expandDirection, ["down", "up"] as const, "down"),
+            hidden: ALWAYS_VISIBLE.includes(id) ? false : typeof item.hidden === "boolean" ? item.hidden : base.hidden,
+            settings: resolveSettings(
+              manifest,
+              item.settings && typeof item.settings === "object" ? (item.settings as SettingsValues) : undefined,
+            ),
+          }
+        : base,
     );
-    for (const id of result[colId]) seen.add(id);
   }
 
-  for (const [colId, ids] of Object.entries(DEFAULT_LAYOUT)) {
-    for (const id of ids) {
-      if (!seen.has(id)) result[colId].push(id);
+  if (stored.version === 2 && Array.isArray(stored.widgets)) {
+    for (const item of stored.widgets) {
+      if (!item || typeof item !== "object") continue;
+      const id = (item as Record<string, unknown>).id;
+      if (typeof id === "string" && id in WIDGETS) push(id as WidgetId, item as Record<string, unknown>);
     }
+  } else if (stored.version === undefined) {
+    for (const id of migrateV1(stored)) push(id);
+  } else {
+    return null;
   }
 
-  return result;
+  // anything registered since the layout was saved joins at the end
+  for (const id of DEFAULT_ORDER) {
+    if (!seen.has(id)) push(id);
+  }
+
+  return { version: 2, widgets };
 }
 
 export function getLayout(): LayoutState {
   if (layout === null) {
-    layout = DEFAULT_LAYOUT;
+    layout = buildDefaultLayout();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -53,25 +163,47 @@ export function getLayout(): LayoutState {
 }
 
 export function getServerLayout(): LayoutState {
-  return DEFAULT_LAYOUT;
+  return buildDefaultLayout();
 }
 
-export function setLayout(update: LayoutState | ((prev: LayoutState) => LayoutState)) {
-  layout = typeof update === "function" ? update(getLayout()) : update;
-  listeners.forEach((listener) => listener());
-}
-
-/** persist the current arrangement — called when the layout is locked in */
-export function persistLayout() {
+function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(getLayout()));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
   } catch {
     // storage full/blocked — layout still applies for this session
   }
 }
 
+function commit(next: LayoutState) {
+  layout = next;
+  persist();
+  listeners.forEach((listener) => listener());
+}
+
+/** move `activeId` to `overId`'s position (dnd live reorder) */
+export function reorderWidget(activeId: WidgetId, overId: WidgetId) {
+  const current = getLayout();
+  const from = current.widgets.findIndex((w) => w.id === activeId);
+  const to = current.widgets.findIndex((w) => w.id === overId);
+  if (from === -1 || to === -1 || from === to) return;
+  const widgets = [...current.widgets];
+  const [moved] = widgets.splice(from, 1);
+  widgets.splice(to, 0, moved);
+  commit({ version: 2, widgets });
+}
+
+export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance, "id">>) {
+  const current = getLayout();
+  commit({
+    version: 2,
+    widgets: current.widgets.map((w) =>
+      w.id === id ? { ...w, ...patch, settings: { ...w.settings, ...patch.settings } } : w,
+    ),
+  });
+}
+
 export function resetLayout() {
-  layout = DEFAULT_LAYOUT;
+  layout = buildDefaultLayout();
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SquareTerminal, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { NutBotFace } from "@/components/NutBotFace";
 import { RealShell } from "@/components/RealShell";
 
@@ -120,12 +120,7 @@ export function NutBot() {
   const activeShell = shells[activeTab];
 
   return (
-    <div className="block">
-      <div className="block-label">
-        <SquareTerminal size={14} strokeWidth={1.75} />
-        nutbot v1.4
-      </div>
-
+    <>
       <div className="term-row">
         <div className="term-tabs">
           {tabs.map((tab) => (
@@ -202,6 +197,6 @@ export function NutBot() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

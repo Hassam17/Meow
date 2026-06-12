@@ -1,30 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Server } from "lucide-react";
+import { usePolling } from "@/lib/usePolling";
+import { useWidget } from "@/components/framework/WidgetContext";
 import { averageUptime, type HomelabStatus as HomelabStatusData } from "@/lib/homelab";
 
 export function HomelabStatus() {
-  const [data, setData] = useState<HomelabStatusData | null>(null);
-
-  useEffect(() => {
-    const load = () =>
-      fetch("/api/homelab")
-        .then((r) => r.json())
-        .then(setData)
-        .catch(() => {});
-    load();
-    const id = setInterval(load, 60_000);
-    return () => clearInterval(id);
-  }, []);
+  const { settings } = useWidget();
+  const { data } = usePolling<HomelabStatusData>("/api/homelab", Number(settings.pollSeconds ?? 60) * 1000);
 
   return (
-    <div id="homelab" className="block">
-      <div className="block-label">
-        <Server size={14} strokeWidth={1.75} />
-        a very nutty home server
-      </div>
-
+    <>
       <div className="block-stat">{data ? (averageUptime(data.services) ?? "—") : "—"}</div>
 
       {data && (
@@ -37,18 +22,24 @@ export function HomelabStatus() {
           ))}
         </div>
       )}
+    </>
+  );
+}
 
-      {data && data.services.length > 0 && (
-        <div className="more-panel">
-          <div className="more-head">services</div>
-          {data.services.map((s) => (
-            <div className="more-row" key={s.name}>
-              <span>{s.name}</span>
-              <span className="more-meta">{s.uptime}</span>
-            </div>
-          ))}
+export function HomelabStatusMore() {
+  const { data } = usePolling<HomelabStatusData>("/api/homelab", 60_000);
+
+  if (!data || data.services.length === 0) return <div className="block-sub">no service data</div>;
+
+  return (
+    <>
+      <div className="more-head">services</div>
+      {data.services.map((s) => (
+        <div className="more-row" key={s.name}>
+          <span>{s.name}</span>
+          <span className="more-meta">{s.uptime}</span>
         </div>
-      )}
-    </div>
+      ))}
+    </>
   );
 }

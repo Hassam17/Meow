@@ -182,10 +182,6 @@ body {
 
   .frame-inner {
     height: 100%;
-  }
-
-  .frame-col {
-    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     /* room so sticker shadows aren't clipped by the scroll container */
@@ -195,24 +191,60 @@ body {
   }
 }
 
-/* blocks must never compress to fit the column height — overflowing
-   content scrolls the column instead of squishing/clipping the cards */
-.frame-col > * {
-  flex-shrink: 0;
+/* ─── widget grid ────────────────────────────────────────────────
+   Widgets flow in layout order; spans come from each instance's
+   size × orientation preset (SPAN_MAP). Dense auto-flow back-fills
+   gaps; rows grow when content needs more room, so nothing clips.
+   Breakpoints must stay in sync with lib/useGridColumns.ts. */
+
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: minmax(128px, auto);
+  grid-auto-flow: row dense;
+  gap: 12px;
 }
 
-/* each column is a size container so pairs inside can stack based on the
-   width the column actually has (it varies — tracker hover, max-width cap) */
-.frame-col {
-  container-type: inline-size;
+@media (max-width: 1440px) {
+  .widget-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
-/* ─── pairs + blocks ("sticker" cards) ──────────────────────────── */
+@media (max-width: 1023px) {
+  .widget-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
-.pair {
+@media (max-width: 640px) {
+  .widget-grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+}
+
+/* slot → capsule → card fill the grid cell; taller content grows the row */
+.widget-grid > .widget-slot {
+  min-width: 0;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+}
+
+/* ─── blocks ("sticker" cards) ──────────────────────────────────── */
+
+/* shell wrapper around every widget card — the flyout/overlay anchor */
+.capsule {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.capsule > .block,
+.capsule > .namecard {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .block {
@@ -222,34 +254,22 @@ body {
   padding: 14px 16px;
   border: 1.5px solid var(--border);
   box-shadow: 3px 3px 0 var(--shadow);
-  cursor: pointer;
   overflow: hidden;
-  transition: flex-grow 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease,
-    box-shadow 0.25s ease, background-color 0.3s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.3s ease;
 }
 
 .block.accent-left {
   border-left: 3px solid var(--accent-orange);
 }
 
-.block:hover {
+.block-expandable {
+  cursor: pointer;
+}
+
+.block:hover,
+.capsule.open .block {
   border-color: var(--accent-orange);
   box-shadow: 5px 5px 0 var(--shadow);
-}
-
-.pair .block {
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: 0%;
-  min-width: 0;
-}
-
-.pair:hover .block {
-  flex-grow: 0.65;
-}
-
-.pair .block:hover {
-  flex-grow: 2.5;
 }
 
 /* ─── block typography ───────────────────────────────────────── */
@@ -350,19 +370,94 @@ body {
   color: var(--text-primary);
 }
 
-/* ─── hover-to-expand "more" panel ───────────────────────────── */
+/* ─── expansion surfaces (flyout + overlay) ──────────────────────
+   Both render through portals, so they overlay siblings instead of
+   reflowing the layout — see components/framework/WidgetFlyout.tsx */
 
-.more-panel {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.45s ease, opacity 0.3s ease, margin-top 0.45s ease;
+.flyout {
+  position: fixed;
+  z-index: 45;
+  background: var(--bg-card);
+  border: 1.5px solid var(--accent-orange);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 5px 5px 0 var(--shadow);
+  max-height: min(340px, 55vh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
-.block:hover .more-panel {
-  max-height: 240px;
-  opacity: 1;
-  margin-top: 10px;
+.flyout > .more-head:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+
+.overlay-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: 51;
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1.5px solid var(--accent-orange);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+
+.overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.overlay-head .overlay-title {
+  margin-bottom: 0;
+}
+
+.overlay-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-nested);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.overlay-close:hover {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.overlay-body {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.overlay-body > .more-head:first-child {
+  border-top: none;
+  padding-top: 0;
 }
 
 .more-head {
@@ -999,20 +1094,6 @@ body {
 
 /* ─── spotify capsule ─────────────────────────────────────────── */
 
-.pair:has(.spotify-capsule) .spotify-capsule {
-  flex-grow: 0.82;
-}
-
-.pair:has(.spotify-capsule:hover) .block,
-.pair:has(.spotify-capsule:focus-within) .block {
-  flex-grow: 1;
-}
-
-.pair:has(.spotify-capsule:hover) .spotify-capsule,
-.pair:has(.spotify-capsule:focus-within) .spotify-capsule {
-  flex-grow: 0.82;
-}
-
 .spotify-capsule {
   --media-text: var(--text-primary);
   --media-subtle: color-mix(in srgb, var(--text-primary) 62%, var(--bg-card));
@@ -1169,44 +1250,6 @@ body {
   margin-top: 5px;
 }
 
-.spotify-capsule:focus-within .spotify-more {
-  max-height: 240px;
-  opacity: 1;
-  margin-top: 14px;
-}
-
-.spotify-capsule:hover .spotify-more {
-  margin-top: 14px;
-}
-
-.spotify-more .more-head {
-  padding-top: 0;
-  border-top: 0;
-  margin-bottom: 10px;
-  font-family: var(--font-dot-gothic), monospace;
-  font-size: 0.68rem;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--media-subtle);
-}
-
-.spotify-more .more-row {
-  align-items: baseline;
-  gap: 18px;
-  padding: 5px 6px 5px 0;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 0.74rem;
-  line-height: 1.25;
-  color: var(--media-text);
-}
-
-.spotify-more .more-meta {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 0.66rem;
-  color: var(--media-subtle);
-}
-
 .more-row.clickable {
   cursor: pointer;
   transition: color 0.15s ease;
@@ -1217,12 +1260,6 @@ body {
 }
 
 @media (max-width: 720px) {
-  .pair:has(.spotify-capsule) .spotify-capsule,
-  .pair:has(.spotify-capsule:hover) .spotify-capsule,
-  .pair:has(.spotify-capsule:focus-within) .spotify-capsule {
-    flex-grow: 1;
-  }
-
   .spotify-capsule {
     padding: 16px;
   }
@@ -1703,72 +1740,10 @@ body {
   cursor: pointer;
 }
 
-/* the tracker lives in its own column that widens on hover; the chart
-   pane is collapsed (width 0) until then — the log pane is always visible */
-@media (min-width: 1024px) {
-  .tracker-col {
-    width: 290px;
-    flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* the column itself is full viewport height, so :hover on it would also
-     fire in the empty area below the card — expand only when the card
-     itself is hovered */
-  .tracker-col:has(.block:hover) {
-    width: 555px;
-  }
-}
-
-.tracker-body {
-  display: flex;
-  align-items: flex-start;
-}
-
-.tracker-chart-pane {
-  width: 0;
-  opacity: 0;
-  overflow: hidden;
-  flex-shrink: 0;
-  margin-right: 0;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease,
-    margin-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (min-width: 1024px) {
-  .tracker-col:has(.block:hover) .tracker-chart-pane {
-    width: 240px;
-    opacity: 1;
-    margin-right: 14px;
-  }
-}
-
-/* fixed inner width so the bars don't reflow mid-animation */
-.tracker-chart-inner {
-  width: 240px;
-}
-
+/* the tracker's chart + stats live in its flyout; the card itself
+   only shows the select + recent log */
 .tracker-log-pane {
-  flex: 1;
   min-width: 0;
-}
-
-/* small screens: no hover — stack the chart above the log, always visible */
-@media (max-width: 1023px) {
-  .tracker-body {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .tracker-chart-pane {
-    width: 100%;
-    opacity: 1;
-    overflow: visible;
-  }
-
-  .tracker-chart-inner {
-    width: 100%;
-  }
 }
 
 .tracker-sub-label {
@@ -1965,8 +1940,18 @@ body {
 }
 
 .widget-slot.dragging {
-  opacity: 0.55;
-  z-index: 30;
+  opacity: 0.4;
+}
+
+/* the card carried by the dnd DragOverlay while dragging */
+.drag-preview {
+  cursor: grabbing;
+}
+
+.drag-preview .block,
+.drag-preview .namecard {
+  box-shadow: 6px 6px 0 var(--shadow);
+  border-color: var(--accent-cyan);
 }
 
 .drag-handle {
@@ -1997,40 +1982,220 @@ body {
   border-color: var(--accent-orange);
 }
 
-/* ─── media pair (spotify + steam) ────────────────────────────── */
+/* ─── widget settings (gear popover) ─────────────────────────── */
 
-/* side by side with no hover width-shift — both cards' internal grids
-   collapse on their own at narrow widths, but shifting width on hover
-   makes the shrunken sibling clip mid-animation */
-.pair-media:hover .block,
-.pair-media .block:hover {
-  flex-grow: 1;
+.gear-btn {
+  position: absolute;
+  top: -7px;
+  right: 8px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--accent-cyan);
+  background: var(--bg-card);
+  color: var(--accent-cyan);
+  cursor: pointer;
 }
 
-.pair-media:hover .spotify-capsule,
-.pair-media .spotify-capsule:hover {
-  flex-grow: 0.82;
+.gear-btn:hover {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
 }
 
-/* stack full-width only when the column truly can't fit both cards at
-   their internal minimums. Queries .frame-col width, so this also reacts
-   when the tracker column expands and borrows width from the center. */
-@container (max-width: 560px) {
-  .pair-media {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .pair-media .block,
-  .pair-media:hover .block,
-  .pair-media .block:hover,
-  .pair-media:has(.spotify-capsule) .spotify-capsule,
-  .pair-media:has(.spotify-capsule:hover) .block,
-  .pair-media:has(.spotify-capsule:hover) .spotify-capsule,
-  .pair-media:has(.spotify-capsule:focus-within) .block,
-  .pair-media:has(.spotify-capsule:focus-within) .spotify-capsule {
-    flex-grow: 0;
-    flex-basis: auto;
-    width: 100%;
-  }
+.wset-panel {
+  position: absolute;
+  top: 14px;
+  right: 4px;
+  z-index: 60;
+  width: 250px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--accent-cyan);
+  border-radius: 12px;
+  box-shadow: 5px 5px 0 var(--shadow);
 }
+
+.wset-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.wset-title {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.wset-section {
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted-dim);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin: 8px 0 6px;
+}
+
+.wset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.wset-row > span:first-child {
+  flex-shrink: 0;
+}
+
+.wset-row input[type="checkbox"] {
+  accent-color: var(--accent-orange);
+  cursor: pointer;
+}
+
+.wset-select,
+.wset-input {
+  max-width: 130px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-nested);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.66rem;
+}
+
+.wset-input {
+  width: 64px;
+}
+
+.seg-row {
+  display: flex;
+  gap: 4px;
+}
+
+.seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-dot-gothic), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.seg-btn:hover:not(.active) {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.seg-btn.active {
+  background: var(--accent-orange);
+  border-color: var(--accent-orange);
+  color: var(--badge-text);
+}
+
+.wset-hide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.64rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.wset-hide-btn:hover {
+  color: var(--status-down);
+  border-color: var(--status-down);
+}
+
+/* ─── hub settings widget ────────────────────────────────────── */
+
+.hub-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+
+.hub-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.hub-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-nested);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.66rem;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.hub-item:hover:not(:disabled) {
+  border-color: var(--accent-orange);
+}
+
+.hub-item:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.hub-item.off {
+  color: var(--text-muted-dim);
+  opacity: 0.6;
+}
+
+.hub-item-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-reset:hover {
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
