@@ -14,7 +14,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NutMag2469",
+  title: "PapuBhaiya",
   description: "A living developer identity card — what I'm listening to, playing, building, and running.",
 };
 

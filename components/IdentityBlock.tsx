@@ -10,11 +10,11 @@ export function IdentityBlock() {
       <div>
         <div className="namecard-logo flex items-center gap-2">
           <NutMagLogo className="h-5 w-auto" />
-          NutMag2469
+          PapuBhaiya
         </div>
         <div className="namecard-sub flex flex-wrap items-center gap-2">
           <a
-            href="https://github.com/Zohaib2244"
+            href="https://github.com/Hassam17"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1"

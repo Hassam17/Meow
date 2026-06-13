@@ -24,7 +24,7 @@ export const LOG_MESSAGES = [
 ];
 
 const HELP_TEXT = "available: help, whoami, neofetch, ls, date, echo <text>, clear";
-const PROMPT = "nutmag@homeserver:~$";
+const PROMPT = "papubhaiya@homeserver:~$";
 
 function runCommand(raw: string): string | null {
   const trimmed = raw.trim();
@@ -36,7 +36,7 @@ function runCommand(raw: string): string | null {
     case "help":
       return HELP_TEXT;
     case "whoami":
-      return "nutmag2469";
+      return "PapuBhaiya";
     case "neofetch":
       return "os: nutos | host: a very nutty home server | shell: nutbot-sh";
     case "ls":

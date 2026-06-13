@@ -1,6 +1,6 @@
 const CACHE_TTL_MS = 60_000;
 const REPOS_CACHE_TTL_MS = 600_000; // repo list changes rarely
-const GITHUB_USERNAME = "Hassam12";
+const GITHUB_USERNAME = "Hassam17";
 const MAX_COMMITS = 6;
 
 export type GitHubUser = {
