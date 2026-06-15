@@ -2,7 +2,7 @@ const OWNED_GAMES_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGam
 const RECENTLY_PLAYED_URL = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/";
 const PLAYER_SUMMARIES_URL = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/";
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 15_000;
 const LIBRARY_CACHE_TTL_MS = 600_000; // owned-games list changes rarely
 
 export type SteamStatus = "in-game" | "online" | "offline";
@@ -140,6 +140,9 @@ export async function getCurrentlyPlaying(): Promise<CurrentlyPlaying> {
   // Sort by rtime_last_played descending — most recently played first
   const sorted = [...owned].sort((a, b) => b.rtime_last_played - a.rtime_last_played);
   const top = sorted[0];
+  const activeGame = player?.gameextrainfo
+    ? owned.find((game) => game.name === player.gameextrainfo) ?? top
+    : top;
 
   const recentlyPlayed = (recentData.response.games ?? []).slice(0, 5).map((g) => ({
     gameName: g.name,
@@ -150,10 +153,10 @@ export async function getCurrentlyPlaying(): Promise<CurrentlyPlaying> {
   const data: CurrentlyPlaying = {
     // If actually in a game right now, show that; otherwise most recent
     gameName: player?.gameextrainfo ?? top.name,
-    iconUrl: iconUrl(top.appid, top.img_icon_url),
-    recentPlaytimeMinutes: recentMap.get(top.appid) ?? top.playtime_2weeks ?? 0,
-    hoursTotal: toHours(top.playtime_forever),
-    lastPlayedTimestamp: top.rtime_last_played,
+    iconUrl: iconUrl(activeGame.appid, activeGame.img_icon_url),
+    recentPlaytimeMinutes: recentMap.get(activeGame.appid) ?? activeGame.playtime_2weeks ?? 0,
+    hoursTotal: toHours(activeGame.playtime_forever),
+    lastPlayedTimestamp: activeGame.rtime_last_played,
     status,
     avatarUrl: player?.avatarmedium ?? player?.avatarfull ?? null,
     personaName: player?.personaname ?? null,

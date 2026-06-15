@@ -4,7 +4,7 @@
 // rendered through a portal over a dimmed backdrop. Escape or backdrop
 // click closes it.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -23,9 +23,11 @@ export function WidgetOverlay({
   Icon: LucideIcon;
   children: ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     if (!open) return;

@@ -10,6 +10,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { usePolling } from "@/lib/usePolling";
 import { formatDuration } from "@/lib/format";
 
@@ -29,12 +30,48 @@ const MILESTONES = [
 ];
 
 const VISIBLE_MILESTONES = 6;
+const MINUTE_MS = 60_000;
+
+const minuteListeners = new Set<() => void>();
+let minuteTimer: ReturnType<typeof setInterval> | null = null;
+let minuteSnapshot = Math.floor(Date.now() / MINUTE_MS);
+
+function emitMinute() {
+  const next = Math.floor(Date.now() / MINUTE_MS);
+  if (next === minuteSnapshot) return;
+  minuteSnapshot = next;
+  minuteListeners.forEach((listener) => listener());
+}
+
+function subscribeToMinute(listener: () => void) {
+  minuteListeners.add(listener);
+  if (minuteTimer === null) {
+    minuteTimer = window.setInterval(emitMinute, MINUTE_MS);
+  }
+
+  return () => {
+    minuteListeners.delete(listener);
+    if (minuteListeners.size === 0 && minuteTimer !== null) {
+      window.clearInterval(minuteTimer);
+      minuteTimer = null;
+    }
+  };
+}
+
+function getMinuteSnapshot() {
+  return minuteSnapshot;
+}
 
 export function UptimeMilestones() {
   const { data } = usePolling<{ uptimeSeconds: number }>("/api/uptime", 60_000);
+  const minute = useSyncExternalStore(
+    subscribeToMinute,
+    getMinuteSnapshot,
+    () => Math.floor(EPOCH_MS / MINUTE_MS),
+  );
+  const now = minute * MINUTE_MS;
 
-  // day counter rides the same fetch cycle (client-only, so no hydration mismatch)
-  const days = data !== null ? Math.floor((Date.now() - EPOCH_MS) / 86_400_000) + 1 : null;
+  const days = data !== null ? Math.floor((now - EPOCH_MS) / 86_400_000) + 1 : null;
   const session = data !== null ? formatDuration(data.uptimeSeconds) : null;
   const next = days !== null ? MILESTONES.find((m) => m.days > days) ?? null : null;
 

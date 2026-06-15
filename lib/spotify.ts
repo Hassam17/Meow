@@ -5,7 +5,7 @@ const QUEUE_URL = "https://api.spotify.com/v1/me/player/queue";
 const PLAYER_BASE_URL = "https://api.spotify.com/v1/me/player/";
 
 const ACCESS_TOKEN_SAFETY_MARGIN_MS = 60_000;
-const NOW_PLAYING_CACHE_TTL_MS = 30_000;
+const NOW_PLAYING_CACHE_TTL_MS = 10_000;
 
 export type NowPlaying = {
   trackName: string;

@@ -7,6 +7,7 @@
 export type Session = { date: string; mins: number };
 export type Game = { name: string; sessions: Session[] };
 export type GameMap = Record<string, Game>;
+export type SteamPresence = { gameName: string; status: "in-game" | "online" | "offline" } | null;
 
 const STORAGE_KEY = "nutmag-sessions";
 const listeners = new Set<() => void>();
@@ -19,6 +20,7 @@ const DEFAULT_GAMES: GameMap = {
 
 let games: GameMap | null = null;
 let selected = "tekken8";
+let activeSteamSession: { key: string; lastObservedAt: number; carryMs: number } | null = null;
 
 function emit() {
   listeners.forEach((listener) => listener());
@@ -59,20 +61,35 @@ export function setSelected(key: string) {
   emit();
 }
 
-/** add a game and select it; returns the new key */
-export function addGame(name: string): string {
-  const key = name.toLowerCase().replace(/\s+/g, "_");
+function normalizeKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function ensureGame(name: string): string {
+  const key = normalizeKey(name);
   const current = getGames() ?? DEFAULT_GAMES;
+  let changed = false;
   if (!current[key]) {
     games = { ...current, [key]: { name, sessions: [] } };
     persist();
+    changed = true;
   }
-  selected = key;
-  emit();
+  if (selected !== key) {
+    selected = key;
+    changed = true;
+  }
+  if (changed) {
+    emit();
+  }
   return key;
 }
 
-export function addSession(gameKey: string, mins: number) {
+/** add a game and select it; returns the new key */
+export function addGame(name: string): string {
+  return ensureGame(name);
+}
+
+function addSessionMinutes(gameKey: string, mins: number) {
   const current = getGames();
   const game = current?.[gameKey];
   if (!current || !game || mins < 1) return;
@@ -84,6 +101,36 @@ export function addSession(gameKey: string, mins: number) {
   games = { ...current, [gameKey]: { ...game, sessions } };
   persist();
   emit();
+}
+
+export function addSession(gameKey: string, mins: number) {
+  addSessionMinutes(gameKey, mins);
+}
+
+export function syncSteamPresence(presence: SteamPresence, observedAt = Date.now()) {
+  const gameName = presence?.status === "in-game" ? presence.gameName.trim() : "";
+
+  if (!gameName) {
+    activeSteamSession = null;
+    return;
+  }
+
+  const key = ensureGame(gameName);
+
+  if (!activeSteamSession || activeSteamSession.key !== key) {
+    activeSteamSession = { key, lastObservedAt: observedAt, carryMs: 0 };
+    return;
+  }
+
+  const elapsedMs = Math.max(0, observedAt - activeSteamSession.lastObservedAt) + activeSteamSession.carryMs;
+  const wholeMins = Math.floor(elapsedMs / 60_000);
+
+  activeSteamSession.lastObservedAt = observedAt;
+  activeSteamSession.carryMs = elapsedMs - wholeMins * 60_000;
+
+  if (wholeMins > 0) {
+    addSessionMinutes(key, wholeMins);
+  }
 }
 
 export function subscribeSessions(listener: () => void) {

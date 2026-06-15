@@ -45,8 +45,7 @@ function GridWidget({
     disabled: !editMode,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  if (!editMode && settingsOpen) setSettingsOpen(false);
+  const showSettings = editMode && settingsOpen;
 
   return (
     <div
@@ -73,7 +72,7 @@ function GridWidget({
           >
             <Settings2 size={12} strokeWidth={1.75} />
           </button>
-          {settingsOpen && (
+          {showSettings && (
             <WidgetSettingsPopover
               manifest={WIDGETS[instance.id]}
               instance={instance}

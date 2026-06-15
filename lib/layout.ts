@@ -35,6 +35,7 @@ export type LayoutState = {
 
 const STORAGE_KEY = "nutmag-layout";
 const listeners = new Set<() => void>();
+const REMOVED_WIDGETS = new Set<WidgetId>(["homelab", "jellyfin"]);
 
 /* widgets the user must never lose access to (the framework's own controls
    live here once the hub-settings widget exists) */
@@ -104,7 +105,7 @@ function sanitize(raw: unknown): LayoutState | null {
   const widgets: WidgetInstance[] = [];
 
   function push(id: WidgetId, item?: Record<string, unknown>) {
-    if (seen.has(id)) return;
+    if (seen.has(id) || REMOVED_WIDGETS.has(id)) return;
     seen.add(id);
     const manifest = WIDGETS[id];
     const base = defaultInstance(id);

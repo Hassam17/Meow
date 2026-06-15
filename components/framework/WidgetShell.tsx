@@ -5,7 +5,7 @@
 // header, and the expansion machinery — widget content components only
 // render their data and read placement state through useWidget().
 
-import { useRef, useState, type MouseEvent, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   resolveSettings,
@@ -42,7 +42,10 @@ function isInteractive(target: EventTarget | null): boolean {
 export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; config?: ShellConfig }) {
   const size = config?.size ?? manifest.defaults.size;
   const orientation = config?.orientation ?? manifest.defaults.orientation;
-  const settings = resolveSettings(manifest, config?.settings);
+  const settings = useMemo(
+    () => resolveSettings(manifest, config?.settings),
+    [manifest, config?.settings],
+  );
   // an expansion mode is only honored when the widget ships expanded content
   const expand: ExpandMode =
     manifest.expandedComponent ? (config?.expand ?? manifest.defaults.expand) : "none";
@@ -76,8 +79,19 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
   const flags = manifest.flags ?? {};
   const Icon = manifest.icon;
 
-  const ctx = { id: manifest.id, size, orientation, settings, inOverlay: false };
   const expanded = flyoutOpen || overlayOpen;
+  const ctx = useMemo(
+    () => ({ id: manifest.id, size, orientation, settings, inOverlay: false }),
+    [manifest.id, size, orientation, settings],
+  );
+  const overlayCtx = useMemo(
+    () => ({ ...ctx, expanded: true, inOverlay: true }),
+    [ctx],
+  );
+  const contentCtx = useMemo(
+    () => ({ ...ctx, expanded }),
+    [ctx, expanded],
+  );
 
   const blockClasses = [
     "block",
@@ -101,7 +115,7 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
       tabIndex={expand === "overlay" ? 0 : undefined}
     >
       {flags.plainChrome ? (
-        <WidgetContext.Provider value={{ ...ctx, expanded }}>
+        <WidgetContext.Provider value={contentCtx}>
           <Content />
         </WidgetContext.Provider>
       ) : (
@@ -112,7 +126,7 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
               {manifest.title}
             </div>
           )}
-          <WidgetContext.Provider value={{ ...ctx, expanded }}>
+          <WidgetContext.Provider value={contentCtx}>
             <Content />
             {/* hover expansion lives inside the card — the animated height
                 grows the card, the grid row grows with it, and surrounding
@@ -140,7 +154,7 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
 
       {expand === "overlay" && Expanded && (
         <WidgetOverlay open={overlayOpen} onClose={() => setOverlayOpen(false)} title={manifest.title} Icon={Icon}>
-          <WidgetContext.Provider value={{ ...ctx, expanded: true, inOverlay: true }}>
+          <WidgetContext.Provider value={overlayCtx}>
             <Expanded />
           </WidgetContext.Provider>
         </WidgetOverlay>

@@ -11,7 +11,7 @@ import type { CurrentlyPlaying as CurrentlyPlayingData } from "@/lib/steam";
 /* eslint-disable @next/next/no-img-element -- steam avatars are tiny external images */
 
 const POLL_URL = "/api/currently-playing";
-const POLL_MS = 60_000;
+const POLL_MS = 15_000;
 
 export function CurrentlyPlaying() {
   const { data } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);

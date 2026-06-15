@@ -1,12 +1,14 @@
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  Dumbbell,
   Clock,
   Cpu,
   Database,
   Download,
   Gamepad2,
   GitCommitHorizontal,
+  Goal,
   HardDrive,
   IdCard,
   Link2,
@@ -36,6 +38,8 @@ import { CurrentlyPlaying } from "@/components/CurrentlyPlaying";
 import { GitHubActivity, GitHubActivityMore } from "@/components/GitHubActivity";
 import { SessionTracker, SessionTrackerMore } from "@/components/SessionTracker";
 import { HubSettings, HubSettingsMore } from "@/components/widgets/HubSettings";
+import { FootballCheckin, FootballCheckinMore } from "@/components/FootballCheckin";
+import { GymTracker, GymTrackerMore } from "@/components/GymTracker";
 
 /* ─── widget framework contracts ─────────────────────────────────────
    A widget = a content component + a manifest entry here. The shell
@@ -332,6 +336,29 @@ export const WIDGETS = {
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "v", expand: "hover" },
   },
+  football: {
+    id: "football",
+    title: "football check-in",
+    icon: Goal,
+    component: FootballCheckin,
+    expandedComponent: FootballCheckinMore,
+    sizes: ["S", "M"],
+    orientations: ["h", "v"],
+    expandModes: ["none", "hover", "overlay"],
+    defaults: { size: "S", orientation: "v", expand: "hover" },
+    flags: { accent: true },
+  },
+  gym: {
+    id: "gym",
+    title: "gym tracker",
+    icon: Dumbbell,
+    component: GymTracker,
+    expandedComponent: GymTrackerMore,
+    sizes: ["S", "M"],
+    orientations: ["h", "v"],
+    expandModes: ["none", "hover", "overlay"],
+    defaults: { size: "S", orientation: "v", expand: "hover" },
+  },
 } satisfies Record<string, WidgetManifest>;
 
 export type WidgetId = keyof typeof WIDGETS;
@@ -345,15 +372,15 @@ export const DEFAULT_ORDER: WidgetId[] = [
   "now-playing",
   "currently-playing",
   "github",
-  "homelab",
   "server-stats",
   "disk-storage",
   "network-stats",
-  "jellyfin",
   "arr-stack",
   "storage-apps",
   "quicklinks",
   "milestones",
+  "football",
+  "gym",
   "tracker",
   "hub-settings",
 ];

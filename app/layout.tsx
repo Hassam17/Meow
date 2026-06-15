@@ -38,7 +38,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body
+        className="min-h-full flex flex-col"
+        // browser extensions may inject body attributes before hydration
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

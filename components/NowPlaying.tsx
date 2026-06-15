@@ -8,7 +8,7 @@ import { timeAgo } from "@/lib/format";
 import type { NowPlaying as NowPlayingData, PlayerAction } from "@/lib/spotify";
 
 const POLL_URL = "/api/now-playing";
-const POLL_MS = 30_000;
+const POLL_MS = 10_000;
 
 /** returns an error message, or null on success */
 async function spotifyControl(action: PlayerAction, uri: string | undefined, refresh: () => void) {

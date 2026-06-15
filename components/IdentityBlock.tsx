@@ -1,4 +1,4 @@
-import { Github, Server } from "lucide-react";
+import { Github } from "lucide-react";
 import { NutMagLogo } from "@/components/NutMagLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { EditToggle } from "@/components/EditToggle";
@@ -20,10 +20,6 @@ export function IdentityBlock() {
             className="inline-flex items-center gap-1"
           >
             <Github size={14} strokeWidth={1.75} /> github
-          </a>
-          <span>·</span>
-          <a href="#homelab" className="inline-flex items-center gap-1">
-            <Server size={14} strokeWidth={1.75} /> homelab
           </a>
           <span>·</span>
           <UptimeStat />

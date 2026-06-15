@@ -22,7 +22,7 @@ type Entry = {
 const entries = new Map<string, Entry>();
 
 function fetchUrl(url: string) {
-  fetch(url)
+  fetch(url, { cache: "no-store" })
     // error responses carry an error body, not widget data — keep the
     // last good payload instead of committing it
     .then((r) => (r.ok ? r.json() : null))

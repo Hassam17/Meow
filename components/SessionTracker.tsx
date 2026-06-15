@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { BarChart3, Check, Plus } from "lucide-react";
 import {
   addGame,
@@ -10,13 +10,17 @@ import {
   getServerGames,
   lastNDays,
   setSelected,
+  syncSteamPresence,
   subscribeSessions,
   type GameMap,
 } from "@/lib/sessions";
 import { formatMins } from "@/lib/format";
+import { usePolling } from "@/lib/usePolling";
+import type { CurrentlyPlaying as CurrentlyPlayingData } from "@/lib/steam";
 
 const DAYS_SHOWN = 14;
 const DOW_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const STEAM_POLL_MS = 15_000;
 
 function useSessions(): { games: GameMap | null; selected: string } {
   const games = useSyncExternalStore(subscribeSessions, getGames, getServerGames);
@@ -39,6 +43,12 @@ export function SessionTracker() {
   const { games, selected } = useSessions();
   const [minsInput, setMinsInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const { data: steam } = usePolling<CurrentlyPlayingData>("/api/currently-playing", STEAM_POLL_MS);
+
+  useEffect(() => {
+    if (!steam) return;
+    syncSteamPresence(steam, Date.now());
+  }, [steam]);
 
   if (!games) return <div className="block-sub">loading...</div>;
 
@@ -95,6 +105,9 @@ export function SessionTracker() {
       </select>
 
       <div className="tracker-log-pane">
+        <div className="tracker-sub-label">
+          {steam?.status === "in-game" ? `steam sync live · tracking ${steam.gameName}` : "steam sync armed"}
+        </div>
         <div className="tracker-sub-label">recent log</div>
         <div className="session-log">
           {recent.length === 0 ? (
@@ -136,6 +149,12 @@ export function SessionTracker() {
 
 export function SessionTrackerMore() {
   const { games, selected } = useSessions();
+  const { data: steam } = usePolling<CurrentlyPlayingData>("/api/currently-playing", STEAM_POLL_MS);
+
+  useEffect(() => {
+    if (!steam) return;
+    syncSteamPresence(steam, Date.now());
+  }, [steam]);
 
   if (!games) return <div className="block-sub">loading...</div>;
 
@@ -149,6 +168,9 @@ export function SessionTrackerMore() {
     <>
       <div className="tracker-sub-label">
         {game.name} · daily sessions · last {DAYS_SHOWN} days
+      </div>
+      <div className="tracker-sub-label">
+        {steam?.status === "in-game" ? `${steam.gameName} is live on Steam` : "Steam sessions sync while this dashboard is open"}
       </div>
       <div className="chart-bars">
         {vals.map((v, i) => {
