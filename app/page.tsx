@@ -1,5 +1,6 @@
 import { GlyphStrip } from "@/components/GlyphStrip";
 import { BootSequence } from "@/components/BootSequence";
+import { BottomCompanion } from "@/components/BottomCompanion";
 import { LayoutProvider } from "@/components/LayoutProvider";
 import { Dashboard } from "@/components/Dashboard";
 
@@ -13,6 +14,7 @@ export default function Home() {
           config/widgets.tsx, user overrides in localStorage["nutmag-layout"] */}
       <LayoutProvider>
         <Dashboard />
+        <BottomCompanion />
       </LayoutProvider>
     </main>
   );

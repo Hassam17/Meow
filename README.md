@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meow
 
-## Getting Started
+Personal dashboard built with Next.js 16, React 19, and a custom widget framework.
 
-First, run the development server:
+## Run
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Verify
+
+```bash
+npm run lint
+npm run build
+```
+
+`npm run build` uses Webpack intentionally. Turbopack was unstable for this project's CSS/build path in this environment.
+
+## Project Docs
+
+- [CHANGELOG.md](./CHANGELOG.md): major changes made so far
+- [EDITING_GUIDE.md](./EDITING_GUIDE.md): where to edit what
+- [DESIGN_VARIATIONS.md](./DESIGN_VARIATIONS.md): design system and visual direction
+- [PLAN.md](./PLAN.md): planning notes
+
+## Important Env Vars
+
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+- `SPOTIFY_REFRESH_TOKEN`
+- `SPOTIFY_CONTROL_ENABLED=true` for production playback control
+- `STEAM_API_KEY`
+- `STEAM_PROFILE_ID`
+- `GITHUB_TOKEN` optional, for higher GitHub API limits/private access
+- `HOMELAB_STATUS_URL`
+- `HOMELAB_MOCK_DATA=true` for local mock homelab data
+- `NUTBOT_SHELL_ENABLED=true` to opt in to the dev shell server
+- `NUTBOT_SHELL_TOKEN`
+- `NEXT_PUBLIC_NUTBOT_SHELL_URL`
+- `NEXT_PUBLIC_NUTBOT_SHELL_TOKEN`
+
+## Dev Commands
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run build
+npm run mock:homelab
+npm run spotify:auth
+npm run nutbot:shell
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/`: app router pages and API routes
+- `components/`: widgets and UI shell
+- `components/framework/`: widget system primitives
+- `components/widgets/`: special widget wrappers
+- `config/`: widget registry, themes, links
+- `lib/`: stores, polling, integrations, formatting
+- `styles/globals.css`: global tokens and component styling
+- `scripts/`: local dev helpers
