@@ -33,7 +33,7 @@ const VISIBLE_MILESTONES = 6;
 const MINUTE_MS = 60_000;
 
 const minuteListeners = new Set<() => void>();
-let minuteTimer: ReturnType<typeof setInterval> | null = null;
+let minuteTimer: number | null = null;
 let minuteSnapshot = Math.floor(Date.now() / MINUTE_MS);
 
 function emitMinute() {

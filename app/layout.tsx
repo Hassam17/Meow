@@ -1,17 +1,5 @@
 import type { Metadata } from "next";
-import { DotGothic16, JetBrains_Mono } from "next/font/google";
 import "../styles/globals.css";
-
-const dotGothic16 = DotGothic16({
-  variable: "--font-dot-gothic",
-  weight: "400",
-  subsets: ["latin"],
-});
-
-const jetBrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "PapuBhaiya",
@@ -26,7 +14,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dotGothic16.variable} ${jetBrainsMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       // the pre-paint theme script below mutates data-theme before hydration —
       // expected divergence from server HTML, not a bug
       suppressHydrationWarning

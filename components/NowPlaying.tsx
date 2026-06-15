@@ -29,7 +29,7 @@ async function spotifyControl(action: PlayerAction, uri: string | undefined, ref
 }
 
 export function NowPlaying() {
-  const { data, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
+  const { data, error, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
   const [controlError, setControlError] = useState<string | null>(null);
 
   async function control(action: PlayerAction) {
@@ -134,13 +134,13 @@ export function NowPlaying() {
         )}
       </AnimatePresence>
 
-      {controlError && <div className="control-error">{controlError}</div>}
+      {(controlError || error) && <div className="control-error">{controlError ?? error}</div>}
     </>
   );
 }
 
 export function NowPlayingMore() {
-  const { data, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
+  const { data, error, refresh } = usePolling<NowPlayingData>(POLL_URL, POLL_MS);
   const [controlError, setControlError] = useState<string | null>(null);
 
   async function playTrack(uri: string) {
@@ -151,6 +151,10 @@ export function NowPlayingMore() {
   const queue = data?.queue ?? [];
   const recentTracks = data?.recentTracks ?? [];
   const showQueue = !!data?.isPlaying && queue.length > 0;
+
+  if (error) {
+    return <div className="block-sub">{error}</div>;
+  }
 
   if (!showQueue && recentTracks.length === 0) {
     return <div className="block-sub">no recent tracks</div>;
@@ -181,7 +185,7 @@ export function NowPlayingMore() {
               <span className="more-meta">{t.artist}</span>
             </div>
           ))}
-      {controlError && <div className="control-error">{controlError}</div>}
+      {(controlError || error) && <div className="control-error">{controlError ?? error}</div>}
     </>
   );
 }

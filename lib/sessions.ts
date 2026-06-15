@@ -65,7 +65,7 @@ function normalizeKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function ensureGame(name: string): string {
+function ensureGame(name: string, select = true): string {
   const key = normalizeKey(name);
   const current = getGames() ?? DEFAULT_GAMES;
   let changed = false;
@@ -74,7 +74,7 @@ function ensureGame(name: string): string {
     persist();
     changed = true;
   }
-  if (selected !== key) {
+  if (select && selected !== key) {
     selected = key;
     changed = true;
   }
@@ -115,7 +115,7 @@ export function syncSteamPresence(presence: SteamPresence, observedAt = Date.now
     return;
   }
 
-  const key = ensureGame(gameName);
+  const key = ensureGame(gameName, false);
 
   if (!activeSteamSession || activeSteamSession.key !== key) {
     activeSteamSession = { key, lastObservedAt: observedAt, carryMs: 0 };

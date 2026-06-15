@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import "@xterm/xterm/css/xterm.css";
 
 // Local-dev-only: connects to `npm run nutbot:shell` (scripts/nutbot-shell-server.mjs),
 // a websocket server bound to 127.0.0.1 that hands back a real pty on this machine.
@@ -44,7 +43,11 @@ export function RealShell({ wsUrl }: { wsUrl: string }) {
       term.open(containerRef.current);
       fitAddon.fit();
 
-      const socket = new WebSocket(wsUrl);
+      const shellUrl = new URL(wsUrl);
+      const token = process.env.NEXT_PUBLIC_NUTBOT_SHELL_TOKEN;
+      if (token) shellUrl.searchParams.set("token", token);
+
+      const socket = new WebSocket(shellUrl);
       socket.binaryType = "arraybuffer";
 
       const sendResize = () => {

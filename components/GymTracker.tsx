@@ -9,6 +9,7 @@ import {
   isoDate,
   subscribeLifestyle,
   toggleGymCheckin,
+  weekdayKey,
   type GymPlanDay,
 } from "@/lib/lifestyle";
 
@@ -63,14 +64,17 @@ export function GymTracker() {
 
 export function GymTrackerMore() {
   const { gymCheckins } = useLifestyle();
-  const today = isoDate(new Date());
+  const todayDate = new Date();
+  const today = isoDate(todayDate);
+  const todayKey = weekdayKey(todayDate);
 
   return (
     <>
       <div className="more-head">weekly gym split</div>
       <div className="planner-list">
         {GYM_PLAN.map((day) => {
-          const checked = gymCheckins[today] === day.key && todayPlan().key === day.key;
+          const isToday = day.key === todayKey;
+          const checked = isToday && gymCheckins[today] === day.key;
           return (
             <div className="planner-card" key={day.key}>
               <div className="planner-card-top">
@@ -78,21 +82,25 @@ export function GymTrackerMore() {
                   <div className="planner-card-title">{day.label} · {day.focus}</div>
                   <div className="planner-card-meta">{day.exercises.join(" · ")}</div>
                 </div>
-                <button
-                  type="button"
-                  className={`planner-check${checked ? " active" : ""}`}
-                  onClick={() => toggleGymCheckin(today, day.key)}
-                >
-                  <Check size={12} strokeWidth={2} />
-                  {checked ? "scheduled today" : "set today"}
-                </button>
+                {isToday ? (
+                  <button
+                    type="button"
+                    className={`planner-check${checked ? " active" : ""}`}
+                    onClick={() => toggleGymCheckin(today, day.key)}
+                  >
+                    <Check size={12} strokeWidth={2} />
+                    {checked ? "done today" : "mark today"}
+                  </button>
+                ) : (
+                  <div className="planner-badge">{day.label}</div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
       <div className="block-sub">
-        Today is logged against one split only. Use this to pivot the plan when your week shifts.
+        The split is fixed by weekday. Only today&apos;s row is actionable, so the plan stays consistent.
       </div>
     </>
   );

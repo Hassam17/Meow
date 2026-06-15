@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { CalendarDays, Check, Clock3, MapPin, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Clock3, MapPin, Plus, Trash2, X } from "lucide-react";
 import {
   addFootballEvent,
   getLifestyle,
@@ -35,10 +35,12 @@ function eventSortKey(event: FootballEvent): string {
   return `${event.date}-${event.startTime}`;
 }
 
+function eventStart(event: FootballEvent): Date {
+  return new Date(`${event.date}T${event.startTime}:00`);
+}
+
 function isUpcoming(event: FootballEvent): boolean {
-  const now = new Date();
-  const start = new Date(`${event.date}T${event.startTime}:00`);
-  return start >= now && !event.played;
+  return eventStart(event) >= new Date() && !event.played;
 }
 
 function isPastLogged(event: FootballEvent): boolean {
@@ -62,8 +64,12 @@ export function FootballCheckin() {
   const upcoming = ordered.filter(isUpcoming);
   const logged = ordered.filter(isPastLogged);
   const next = upcoming[0] ?? null;
+  const now = new Date();
   const monthMinutes = logged
-    .filter((event) => event.date.slice(0, 7) === new Date().toISOString().slice(0, 7))
+    .filter((event) => {
+      const start = eventStart(event);
+      return start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth();
+    })
     .reduce((sum, event) => sum + event.durationMinutes, 0);
   const recentDates = ordered.slice(0, 6);
 
@@ -121,6 +127,7 @@ export function FootballCheckin() {
 
 export function FootballCheckinMore() {
   const { football } = useLifestyle();
+  const [composerOpen, setComposerOpen] = useState(false);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("19:00");
   const [durationMinutes, setDurationMinutes] = useState("90");
@@ -145,10 +152,11 @@ export function FootballCheckinMore() {
     setTitle("");
     setLocation("");
     setNotes("");
+    setComposerOpen(false);
   }
 
   const ordered = [...football].sort((a, b) => eventSortKey(a).localeCompare(eventSortKey(b)));
-  const upcoming = ordered.filter((event) => !event.played);
+  const upcoming = ordered.filter(isUpcoming);
   const logged = [...ordered.filter((event) => event.played)].reverse();
 
   return (
@@ -211,52 +219,73 @@ export function FootballCheckinMore() {
       </div>
 
       <div className="more-head">add football session</div>
-      <div className="planner-form">
-        <label className="planner-field">
-          <span>date</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label className="planner-field">
-          <span>start</span>
-          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-        </label>
-        <label className="planner-field">
-          <span>duration</span>
-          <input
-            type="number"
-            min={15}
-            step={15}
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(e.target.value)}
-          />
-        </label>
-        <label className="planner-field">
-          <span>session</span>
-          <input
-            type="text"
-            placeholder="5-a-side, training, matchday"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className="planner-field">
-          <span>location</span>
-          <input type="text" placeholder="local turf" value={location} onChange={(e) => setLocation(e.target.value)} />
-        </label>
-        <label className="planner-field planner-field-wide">
-          <span>notes</span>
-          <input
-            type="text"
-            placeholder="opponents, boots, meetup time"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </label>
-        <button type="button" className="planner-submit" onClick={submit}>
-          <Plus size={12} strokeWidth={1.75} />
-          add session
-        </button>
-      </div>
+      <button type="button" className="planner-submit football-launch" onClick={() => setComposerOpen(true)}>
+        <Plus size={12} strokeWidth={1.75} />
+        add session
+      </button>
+
+      {composerOpen && (
+        <div className="planner-modal-shell" role="dialog" aria-modal="true" aria-label="add football session">
+          <button type="button" className="planner-modal-backdrop" onClick={() => setComposerOpen(false)} aria-label="close add football session" />
+          <div className="planner-modal">
+            <div className="planner-modal-head">
+              <div>
+                <div className="planner-kicker">new football session</div>
+                <div className="planner-title">log date, start time, duration, and location</div>
+              </div>
+              <button type="button" className="planner-check" onClick={() => setComposerOpen(false)} aria-label="close">
+                <X size={12} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="planner-form">
+              <label className="planner-field">
+                <span>date</span>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </label>
+              <label className="planner-field">
+                <span>start</span>
+                <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              </label>
+              <label className="planner-field">
+                <span>duration</span>
+                <input
+                  type="number"
+                  min={15}
+                  step={15}
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(e.target.value)}
+                />
+              </label>
+              <label className="planner-field">
+                <span>session</span>
+                <input
+                  type="text"
+                  placeholder="5-a-side, training, matchday"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+              <label className="planner-field">
+                <span>location</span>
+                <input type="text" placeholder="local turf" value={location} onChange={(e) => setLocation(e.target.value)} />
+              </label>
+              <label className="planner-field planner-field-wide">
+                <span>notes</span>
+                <input
+                  type="text"
+                  placeholder="opponents, boots, meetup time"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </label>
+              <button type="button" className="planner-submit" onClick={submit}>
+                <Plus size={12} strokeWidth={1.75} />
+                save session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

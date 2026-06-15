@@ -90,7 +90,7 @@ export function computeCascade(
 
     const shrunkSize = prevSize(w.size);
     const [shrunkCols, shrunkRows] = SPAN_MAP[`${shrunkSize}-${w.orientation}`];
-    const micro = shrunkSize === "S" && !WIDGETS[w.id].sizes.includes("S");
+    const micro = shrunkSize === "S" && !WIDGETS[w.id].sizes.some((size) => size === "S");
     overrides.set(w.id, {
       size: shrunkSize,
       colSpan: Math.min(shrunkCols, gridCols),

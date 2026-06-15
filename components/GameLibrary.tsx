@@ -8,14 +8,26 @@ import type { GameLibrary as GameLibraryData } from "@/lib/steam";
 export function GameLibrary({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [lib, setLib] = useState<GameLibraryData | null>(null);
   const [query, setQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch once, the first time the drawer opens
   useEffect(() => {
     if (!open || lib) return;
-    fetch("/api/steam-library")
-      .then((r) => r.json())
-      .then(setLib)
-      .catch(() => {});
+    fetch("/api/steam-library", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = (await r.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error ?? "failed to load game library");
+        }
+        return r.json();
+      })
+      .then((data) => {
+        setLib(data);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "failed to load game library");
+      });
   }, [open, lib]);
 
   useEffect(() => {
@@ -82,7 +94,9 @@ export function GameLibrary({ open, onClose }: { open: boolean; onClose: () => v
             </div>
 
             <div className="lib-list">
-              {!lib ? (
+              {error ? (
+                <div className="block-sub">{error}</div>
+              ) : !lib ? (
                 <div className="block-sub">loading library...</div>
               ) : filtered.length === 0 ? (
                 <div className="block-sub">no games match &ldquo;{query}&rdquo;</div>

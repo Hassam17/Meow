@@ -3,8 +3,27 @@ import * as pty from "node-pty";
 
 const PORT = Number(process.env.NUTBOT_SHELL_PORT ?? 4001);
 const HOST = "127.0.0.1";
+const ENABLED = process.env.NUTBOT_SHELL_ENABLED === "true";
+const TOKEN = process.env.NUTBOT_SHELL_TOKEN ?? "";
 
-const wss = new WebSocketServer({ host: HOST, port: PORT });
+if (!ENABLED || !TOKEN) {
+  console.error("nutbot shell server refused to start.");
+  console.error("Set NUTBOT_SHELL_ENABLED=true and NUTBOT_SHELL_TOKEN=<secret> to opt in.");
+  process.exit(1);
+}
+
+const wss = new WebSocketServer({
+  host: HOST,
+  port: PORT,
+  shouldHandle(request) {
+    try {
+      const url = new URL(request.url ?? "/", `ws://${HOST}:${PORT}`);
+      return url.searchParams.get("token") === TOKEN;
+    } catch {
+      return false;
+    }
+  },
+});
 
 console.log("=".repeat(60));
 console.log("nutbot real-shell DEMO server");
@@ -15,7 +34,13 @@ console.log("machine with your user's permissions. Do not expose this");
 console.log("port via Tailscale, port forwarding, or any proxy.");
 console.log("=".repeat(60));
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, request) => {
+  const url = new URL(request.url ?? "/", `ws://${HOST}:${PORT}`);
+  if (url.searchParams.get("token") !== TOKEN) {
+    ws.close(1008, "invalid token");
+    return;
+  }
+
   const shell = process.env.SHELL ?? "/bin/zsh";
   const ptyProcess = pty.spawn(shell, [], {
     name: "xterm-256color",

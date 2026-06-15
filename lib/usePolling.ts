@@ -10,8 +10,17 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { getPrefs, subscribePrefs } from "@/lib/prefs";
 
+type Snapshot<T = unknown> = {
+  data: T | null;
+  error: string | null;
+  lastUpdated: number | null;
+};
+
 type Entry = {
   data: unknown;
+  error: string | null;
+  lastUpdated: number | null;
+  snapshot: Snapshot;
   listeners: Set<() => void>;
   /** interval each active subscriber asked for — the fastest one wins */
   intervals: Map<symbol, number>;
@@ -20,20 +29,51 @@ type Entry = {
 };
 
 const entries = new Map<string, Entry>();
+const EMPTY_SNAPSHOT: Snapshot = { data: null, error: null, lastUpdated: null };
+
+function syncSnapshot(entry: Entry) {
+  entry.snapshot = {
+    data: entry.data,
+    error: entry.error,
+    lastUpdated: entry.lastUpdated,
+  };
+}
 
 function fetchUrl(url: string) {
   fetch(url, { cache: "no-store" })
-    // error responses carry an error body, not widget data — keep the
-    // last good payload instead of committing it
-    .then((r) => (r.ok ? r.json() : null))
+    .then(async (r) => {
+      if (r.ok) return { ok: true as const, data: await r.json() };
+      let error = `request failed (${r.status})`;
+      try {
+        const body = (await r.json()) as { error?: string };
+        if (body.error) error = body.error;
+      } catch {
+        // ignore non-json error responses
+      }
+      return { ok: false as const, error };
+    })
     .then((data) => {
-      if (data === null) return;
       const entry = entries.get(url);
       if (!entry) return;
-      entry.data = data;
+      if (!data.ok) {
+        entry.error = data.error;
+        syncSnapshot(entry);
+        entry.listeners.forEach((listener) => listener());
+        return;
+      }
+      entry.data = data.data;
+      entry.error = null;
+      entry.lastUpdated = Date.now();
+      syncSnapshot(entry);
       entry.listeners.forEach((listener) => listener());
     })
-    .catch(() => {});
+    .catch(() => {
+      const entry = entries.get(url);
+      if (!entry) return;
+      entry.error = "network error";
+      syncSnapshot(entry);
+      entry.listeners.forEach((listener) => listener());
+    });
 }
 
 function syncTimer(url: string) {
@@ -61,13 +101,25 @@ function hookPrefs() {
   });
 }
 
-export function usePolling<T>(url: string, intervalMs = 60_000): { data: T | null; refresh: () => void } {
+export function usePolling<T>(
+  url: string,
+  intervalMs = 60_000,
+): { data: T | null; error: string | null; lastUpdated: number | null; refresh: () => void } {
   const subscribe = useCallback(
     (listener: () => void) => {
       hookPrefs();
       let entry = entries.get(url);
       if (!entry) {
-        entry = { data: null, listeners: new Set(), intervals: new Map(), timer: null, fetched: false };
+        entry = {
+          data: null,
+          error: null,
+          lastUpdated: null,
+          snapshot: EMPTY_SNAPSHOT,
+          listeners: new Set(),
+          intervals: new Map(),
+          timer: null,
+          fetched: false,
+        };
         entries.set(url, entry);
       }
       const key = Symbol();
@@ -89,13 +141,13 @@ export function usePolling<T>(url: string, intervalMs = 60_000): { data: T | nul
     [url, intervalMs],
   );
 
-  const data = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     subscribe,
-    () => (entries.get(url)?.data ?? null) as T | null,
-    () => null,
+    () => (entries.get(url)?.snapshot ?? EMPTY_SNAPSHOT) as Snapshot<T>,
+    () => EMPTY_SNAPSHOT as Snapshot<T>,
   );
 
   const refresh = useCallback(() => fetchUrl(url), [url]);
 
-  return { data, refresh };
+  return { ...snapshot, refresh };
 }

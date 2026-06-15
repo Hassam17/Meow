@@ -14,7 +14,7 @@ const POLL_URL = "/api/currently-playing";
 const POLL_MS = 15_000;
 
 export function CurrentlyPlaying() {
-  const { data } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);
+  const { data, error } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -96,6 +96,7 @@ export function CurrentlyPlaying() {
               {copied ? "copied!" : "copy friend code"}
             </button>
           )}
+          {error && <div className="block-sub">{error}</div>}
         </div>
       </div>
 
@@ -105,8 +106,12 @@ export function CurrentlyPlaying() {
 }
 
 export function CurrentlyPlayingMore() {
-  const { data } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);
+  const { data, error } = usePolling<CurrentlyPlayingData>(POLL_URL, POLL_MS);
   const recentlyPlayed = data?.recentlyPlayed ?? [];
+
+  if (error) {
+    return <div className="block-sub">{error}</div>;
+  }
 
   if (recentlyPlayed.length === 0) {
     return <div className="block-sub">nothing played recently</div>;

@@ -179,6 +179,10 @@ export function toggleGymCheckin(date: string, dayKey: GymDayKey) {
   });
 }
 
+export function weekdayKey(date: Date): GymDayKey {
+  return GYM_PLAN[(date.getDay() + 6) % 7].key;
+}
+
 export function isoDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

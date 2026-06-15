@@ -6,6 +6,8 @@
 ──────────────────────────────────────────────────────────────────── */
 
 :root {
+  --font-dot-gothic: "Courier New", "Lucida Console", monospace;
+  --font-jetbrains-mono: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", monospace;
   --bg-page: #13100c;
   --bg-card: #1e1a14;
   --bg-nested: #1a1610;
@@ -2151,13 +2153,13 @@ body {
 
 .planner-field input {
   width: 100%;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-nested);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
 }
 
 .planner-field-wide,
@@ -2334,6 +2336,46 @@ body {
   font-size: 0.58rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.football-launch {
+  width: 100%;
+}
+
+.planner-modal-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.planner-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(6 8 6 / 66%);
+}
+
+.planner-modal {
+  position: relative;
+  z-index: 1;
+  width: min(560px, calc(100vw - 36px));
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: 5px 5px 0 var(--shadow);
+}
+
+.planner-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .add-session {

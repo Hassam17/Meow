@@ -5,8 +5,28 @@ export const dynamic = "force-dynamic";
 
 const ACTIONS: PlayerAction[] = ["play", "pause", "next", "previous", "play-track"];
 
+function sameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  if (!host) return false;
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.SPOTIFY_CONTROL_ENABLED !== "true") {
+      return NextResponse.json({ ok: false, error: "spotify control disabled" }, { status: 403 });
+    }
+    if (!sameOrigin(request)) {
+      return NextResponse.json({ ok: false, error: "forbidden origin" }, { status: 403 });
+    }
+
     const body = (await request.json()) as { action?: string; uri?: string };
 
     if (!body.action || !ACTIONS.includes(body.action as PlayerAction)) {
