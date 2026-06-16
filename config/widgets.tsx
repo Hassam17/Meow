@@ -50,6 +50,7 @@ import { GymTracker, GymTrackerMore } from "@/components/GymTracker";
 
 export type WidgetSize = "S" | "M" | "L";
 export type Orientation = "h" | "v";
+export type ChannelRegion = "left" | "center" | "right";
 /** "grow" bumps the widget one size tier on hover and cascades a shrink to
     whichever neighbor(s) it displaces — see lib/gridCascade.ts */
 export type ExpandMode = "none" | "hover" | "overlay" | "grow";
@@ -78,6 +79,8 @@ export type WidgetManifest = {
   /** expansion capabilities; ["none"] when there is no expanded content */
   expandModes: ExpandMode[];
   defaults: { size: WidgetSize; orientation: Orientation; expand: ExpandMode; hidden?: boolean };
+  /** default column when the dashboard renders in curated channel mode */
+  channelRegion?: ChannelRegion;
   /** widget-specific options — drives the auto-generated settings form */
   settings?: SettingsField[];
   flags?: {
@@ -141,6 +144,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none"],
     defaults: { size: "S", orientation: "v", expand: "none" },
+    channelRegion: "left",
     settings: [
       { key: "showCalendar", label: "mini calendar", type: "toggle", default: true },
       { key: "showLofi", label: "lofi radio", type: "toggle", default: true },
@@ -155,6 +159,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none"],
     defaults: { size: "S", orientation: "h", expand: "none" },
+    channelRegion: "left",
     flags: { className: "quicklinks-compact" },
   },
   milestones: {
@@ -166,6 +171,7 @@ export const WIDGETS = {
     orientations: ["v"],
     expandModes: ["none"],
     defaults: { size: "S", orientation: "v", expand: "none" },
+    channelRegion: "left",
   },
   homelab: {
     id: "homelab",
@@ -177,6 +183,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
     settings: [
       {
         key: "pollSeconds",
@@ -201,6 +208,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
   },
   "disk-storage": {
     id: "disk-storage",
@@ -212,6 +220,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
   },
   "network-stats": {
     id: "network-stats",
@@ -223,6 +232,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
   },
   jellyfin: {
     id: "jellyfin",
@@ -234,6 +244,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
     flags: { accent: true },
   },
   "arr-stack": {
@@ -246,6 +257,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "hover" },
+    channelRegion: "left",
   },
   "storage-apps": {
     id: "storage-apps",
@@ -256,6 +268,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none"],
     defaults: { size: "S", orientation: "h", expand: "none" },
+    channelRegion: "left",
   },
   nutbot: {
     id: "nutbot",
@@ -267,6 +280,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "overlay"],
     defaults: { size: "S", orientation: "h", expand: "overlay" },
+    channelRegion: "right",
   },
   identity: {
     id: "identity",
@@ -277,6 +291,7 @@ export const WIDGETS = {
     orientations: ["h"],
     expandModes: ["none"],
     defaults: { size: "M", orientation: "h", expand: "none" },
+    channelRegion: "center",
     flags: { plainChrome: true },
   },
   "now-playing": {
@@ -288,6 +303,7 @@ export const WIDGETS = {
     orientations: ["h"],
     expandModes: ["none", "grow"],
     defaults: { size: "M", orientation: "h", expand: "grow" },
+    channelRegion: "center",
     flags: { customHeader: true, className: "spotify-capsule" },
   },
   "currently-playing": {
@@ -299,6 +315,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "grow"],
     defaults: { size: "M", orientation: "v", expand: "grow" },
+    channelRegion: "center",
     flags: { customHeader: true, className: "steam-card" },
   },
   github: {
@@ -311,6 +328,7 @@ export const WIDGETS = {
     orientations: ["h"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "M", orientation: "h", expand: "hover" },
+    channelRegion: "center",
     settings: [{ key: "flyoutCommits", label: "commits shown", type: "number", default: 5, min: 1, max: 15 }],
     flags: { customHeader: true, accent: true },
   },
@@ -324,6 +342,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["overlay"],
     defaults: { size: "S", orientation: "h", expand: "overlay" },
+    channelRegion: "right",
   },
   tracker: {
     id: "tracker",
@@ -335,6 +354,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "v", expand: "hover" },
+    channelRegion: "right",
   },
   football: {
     id: "football",
@@ -346,6 +366,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "v", expand: "hover" },
+    channelRegion: "right",
     flags: { accent: true },
   },
   gym: {
@@ -358,6 +379,7 @@ export const WIDGETS = {
     orientations: ["h", "v"],
     expandModes: ["none", "hover", "overlay"],
     defaults: { size: "S", orientation: "v", expand: "hover" },
+    channelRegion: "right",
   },
 } satisfies Record<string, WidgetManifest>;
 

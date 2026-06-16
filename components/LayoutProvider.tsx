@@ -6,6 +6,7 @@ import {
   getServerLayout,
   reorderWidget,
   resetLayout as resetLayoutStore,
+  setLayoutMode,
   subscribeLayout,
   updateInstance,
   type LayoutState,
@@ -16,6 +17,7 @@ type LayoutContextValue = {
   /** mutations persist immediately — see lib/layout.ts */
   reorderWidget: typeof reorderWidget;
   updateInstance: typeof updateInstance;
+  setLayoutMode: typeof setLayoutMode;
   editMode: boolean;
   startEdit: () => void;
   /** exit edit mode (the arrangement is already saved) */
@@ -39,6 +41,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         layout,
         reorderWidget,
         updateInstance,
+        setLayoutMode,
         editMode,
         startEdit,
         lockLayout,

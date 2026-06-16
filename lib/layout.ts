@@ -27,8 +27,11 @@ export type WidgetInstance = {
   settings: SettingsValues;
 };
 
+export type LayoutMode = "grid" | "channels";
+
 export type LayoutState = {
-  version: 2;
+  version: 3;
+  layoutMode: LayoutMode;
   /** list order = grid placement order (dense auto-flow back-fills gaps) */
   widgets: WidgetInstance[];
 };
@@ -43,6 +46,10 @@ const ALWAYS_VISIBLE: string[] = ["hub-settings"];
 
 let layout: LayoutState | null = null;
 let defaultLayout: LayoutState | null = null;
+
+function defaultLayoutMode(): LayoutMode {
+  return "channels";
+}
 
 export function defaultInstance(id: WidgetId): WidgetInstance {
   const manifest = WIDGETS[id];
@@ -60,7 +67,7 @@ export function defaultInstance(id: WidgetId): WidgetInstance {
 
 function buildDefaultLayout(): LayoutState {
   if (!defaultLayout) {
-    defaultLayout = { version: 2, widgets: DEFAULT_ORDER.map(defaultInstance) };
+    defaultLayout = { version: 3, layoutMode: defaultLayoutMode(), widgets: DEFAULT_ORDER.map(defaultInstance) };
   }
   return defaultLayout;
 }
@@ -92,6 +99,10 @@ function migrateV1(stored: Record<string, unknown>): WidgetId[] {
 
 function clamp<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function sanitizeLayoutMode(value: unknown): LayoutMode {
+  return clamp(value, ["grid", "channels"] as const, defaultLayoutMode());
 }
 
 /* a stored layout may predate widgets added since (or contain ids/values
@@ -127,7 +138,7 @@ function sanitize(raw: unknown): LayoutState | null {
     );
   }
 
-  if (stored.version === 2 && Array.isArray(stored.widgets)) {
+  if ((stored.version === 2 || stored.version === 3) && Array.isArray(stored.widgets)) {
     for (const item of stored.widgets) {
       if (!item || typeof item !== "object") continue;
       const id = (item as Record<string, unknown>).id;
@@ -144,7 +155,7 @@ function sanitize(raw: unknown): LayoutState | null {
     if (!seen.has(id)) push(id);
   }
 
-  return { version: 2, widgets };
+  return { version: 3, layoutMode: sanitizeLayoutMode(stored.layoutMode), widgets };
 }
 
 export function getLayout(): LayoutState {
@@ -190,17 +201,24 @@ export function reorderWidget(activeId: WidgetId, overId: WidgetId) {
   const widgets = [...current.widgets];
   const [moved] = widgets.splice(from, 1);
   widgets.splice(to, 0, moved);
-  commit({ version: 2, widgets });
+  commit({ version: 3, layoutMode: current.layoutMode, widgets });
 }
 
 export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance, "id">>) {
   const current = getLayout();
   commit({
-    version: 2,
+    version: 3,
+    layoutMode: current.layoutMode,
     widgets: current.widgets.map((w) =>
       w.id === id ? { ...w, ...patch, settings: { ...w.settings, ...patch.settings } } : w,
     ),
   });
+}
+
+export function setLayoutMode(layoutMode: LayoutMode) {
+  const current = getLayout();
+  if (current.layoutMode === layoutMode) return;
+  commit({ version: 3, layoutMode, widgets: current.widgets });
 }
 
 export function resetLayout() {

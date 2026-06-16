@@ -8,6 +8,7 @@ import { useSyncExternalStore } from "react";
 import { Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sun, SunMoon } from "lucide-react";
 import { WIDGETS, DEFAULT_ORDER } from "@/config/widgets";
 import { THEME_PACKS } from "@/config/themes";
+import type { LayoutMode } from "@/lib/layout";
 import {
   getPalette,
   getServerPalette,
@@ -26,6 +27,7 @@ const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
   { mode: "auto", Icon: SunMoon },
   { mode: "dark", Icon: Moon },
 ];
+const LAYOUT_OPTIONS: LayoutMode[] = ["channels", "grid"];
 
 function ThemeModeRow() {
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
@@ -69,6 +71,24 @@ function PaletteRow() {
   );
 }
 
+function LayoutModeRow() {
+  const { layout, setLayoutMode } = useLayout();
+  return (
+    <div className="seg-row">
+      {LAYOUT_OPTIONS.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          className={`seg-btn${layout.layoutMode === mode ? " active" : ""}`}
+          onClick={() => setLayoutMode(mode)}
+        >
+          {mode}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function HubSettings() {
   const { layout } = useLayout();
   const visibleCount = layout.widgets.filter((w) => !w.hidden).length;
@@ -79,10 +99,14 @@ export function HubSettings() {
         <span>theme</span>
         <ThemeModeRow />
       </div>
+      <div className="wset-row">
+        <span>layout</span>
+        <LayoutModeRow />
+      </div>
       <PaletteRow />
       <div className="hub-summary">
         <SlidersHorizontal size={12} strokeWidth={1.75} />
-        {visibleCount}/{layout.widgets.length} widgets shown · click to configure
+        {layout.layoutMode} mode · {visibleCount}/{layout.widgets.length} widgets shown
       </div>
     </>
   );
@@ -94,6 +118,12 @@ export function HubSettingsMore() {
 
   return (
     <>
+      <div className="more-head">layout</div>
+      <div className="wset-row">
+        <span>mode</span>
+        <LayoutModeRow />
+      </div>
+
       <div className="more-head">theme</div>
       <div className="wset-row">
         <span>mode</span>

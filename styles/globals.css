@@ -403,6 +403,181 @@ body {
   }
 }
 
+.frame-channels {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 78%, transparent), transparent 20%),
+    var(--bg);
+}
+
+.frame-inner-channels {
+  padding: 2px 2px 10px;
+}
+
+.channel-shell {
+  display: grid;
+  gap: 12px;
+  min-height: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.28fr) minmax(0, 0.96fr) 220px;
+}
+
+.channel-column,
+.channel-rail {
+  min-width: 0;
+}
+
+.channel-column {
+  position: relative;
+  padding: 2px 10px 2px 2px;
+}
+
+.channel-column::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -6px;
+  width: 1px;
+  height: 100%;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0,
+      color-mix(in srgb, var(--border) 72%, transparent) 10%,
+      color-mix(in srgb, var(--border) 72%, transparent) 90%,
+      transparent 100%
+    );
+}
+
+.channel-column-right::after {
+  display: none;
+}
+
+.channel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channel-widget {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.channel-widget.hero .block,
+.channel-widget.hero .namecard {
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+.channel-widget.hero .block {
+  min-height: 176px;
+}
+
+.channel-rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  padding: 2px 2px 2px 8px;
+}
+
+.channel-rail-card {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-orange) 12%, transparent), transparent 54%),
+    var(--bg-card);
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+
+.channel-rail-kicker {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted-dim);
+}
+
+.channel-rail-title {
+  font-size: 0.96rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.channel-rail-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.channel-rail-meta {
+  margin-top: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.channel-rail-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-nested);
+}
+
+@media (max-width: 1535px) {
+  .channel-shell {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr) minmax(0, 0.9fr) 190px;
+  }
+}
+
+@media (max-width: 1279px) {
+  .channel-shell {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .channel-column-center::after {
+    display: none;
+  }
+
+  .channel-column-right {
+    grid-column: 1 / -1;
+  }
+
+  .channel-rail {
+    grid-column: 1 / -1;
+    position: static;
+    padding-left: 2px;
+  }
+
+  .channel-rail-card {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .channel-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .channel-column {
+    padding-right: 2px;
+  }
+
+  .channel-column::after {
+    display: none;
+  }
+}
+
 /* ─── widget grid ────────────────────────────────────────────────
    Widgets flow in layout order; spans come from each instance's
    size × orientation preset (SPAN_MAP). Dense auto-flow back-fills

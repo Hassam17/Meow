@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -14,12 +14,15 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { GripHorizontal, Settings2 } from "lucide-react";
-import { SPAN_MAP, WIDGETS, type WidgetId } from "@/config/widgets";
+import { SPAN_MAP, WIDGETS, type ChannelRegion, type WidgetId } from "@/config/widgets";
 import type { WidgetInstance } from "@/lib/layout";
 import { useGridColumns } from "@/lib/useGridColumns";
 import { useLayout } from "@/components/LayoutProvider";
 import { WidgetShell } from "@/components/framework/WidgetShell";
 import { WidgetSettingsPopover } from "@/components/framework/WidgetSettingsPopover";
+
+const CHANNEL_REGIONS: ChannelRegion[] = ["left", "center", "right"];
+const HERO_WIDGETS = new Set<WidgetId>(["identity", "now-playing", "currently-playing", "github"]);
 
 function spanStyle(instance: WidgetInstance, gridCols: number) {
   const [cols, rows] = SPAN_MAP[`${instance.size}-${instance.orientation}`];
@@ -29,41 +32,40 @@ function spanStyle(instance: WidgetInstance, gridCols: number) {
   };
 }
 
-function GridWidget({
+function WidgetFrame({
   instance,
   editMode,
-  gridCols,
+  className = "",
+  style,
+  dragControls,
 }: {
   instance: WidgetInstance;
   editMode: boolean;
-  gridCols: number;
+  className?: string;
+  style?: CSSProperties;
+  dragControls?: {
+    attributes: ReturnType<typeof useSortable>["attributes"];
+    listeners: ReturnType<typeof useSortable>["listeners"];
+  };
 }) {
-  // no sortable transform strategy — with variable spans + dense flow the
-  // grid itself reflows on live reorder; the DragOverlay carries the visual
-  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
-    id: instance.id,
-    disabled: !editMode,
-  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const showSettings = editMode && settingsOpen;
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`widget-slot${editMode ? " editing" : ""}${isDragging ? " dragging" : ""}`}
-      style={spanStyle(instance, gridCols)}
-    >
+    <div className={className} style={style}>
       {editMode && (
         <>
-          <button
-            type="button"
-            className="drag-handle"
-            aria-label={`move ${instance.id} widget`}
-            {...attributes}
-            {...listeners}
-          >
-            <GripHorizontal size={12} strokeWidth={1.75} />
-          </button>
+          {dragControls && (
+            <button
+              type="button"
+              className="drag-handle"
+              aria-label={`move ${instance.id} widget`}
+              {...dragControls.attributes}
+              {...dragControls.listeners}
+            >
+              <GripHorizontal size={12} strokeWidth={1.75} />
+            </button>
+          )}
           <button
             type="button"
             className="gear-btn"
@@ -86,15 +88,46 @@ function GridWidget({
   );
 }
 
-export function Dashboard() {
+function GridWidget({
+  instance,
+  editMode,
+  gridCols,
+}: {
+  instance: WidgetInstance;
+  editMode: boolean;
+  gridCols: number;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
+    id: instance.id,
+    disabled: !editMode,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`widget-slot${editMode ? " editing" : ""}${isDragging ? " dragging" : ""}`}
+      style={spanStyle(instance, gridCols)}
+    >
+      <WidgetFrame instance={instance} editMode={editMode} dragControls={{ attributes, listeners }} />
+    </div>
+  );
+}
+
+function ChannelWidget({ instance, editMode }: { instance: WidgetInstance; editMode: boolean }) {
+  return (
+    <WidgetFrame
+      instance={instance}
+      editMode={editMode}
+      className={`widget-slot channel-widget${editMode ? " editing" : ""}${HERO_WIDGETS.has(instance.id) ? " hero" : ""}`}
+    />
+  );
+}
+
+function GridDashboard() {
   const { layout, reorderWidget, editMode } = useLayout();
   const gridCols = useGridColumns();
   const [activeId, setActiveId] = useState<WidgetId | null>(null);
-  // last (active, over) pair we reordered for — dedupes onDragOver storms so a
-  // dense-reflow-triggered re-measure can't feed back into another reorder
   const lastOverPair = useRef<string | null>(null);
-
-  // small activation distance so plain clicks on the handle don't start a drag
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const visible = layout.widgets.filter((w) => !w.hidden);
@@ -105,7 +138,6 @@ export function Dashboard() {
     lastOverPair.current = null;
   }
 
-  // reorder live while dragging so the grid reflows under the pointer
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -148,4 +180,56 @@ export function Dashboard() {
       </DragOverlay>
     </DndContext>
   );
+}
+
+function ChannelDashboard() {
+  const { layout, editMode } = useLayout();
+  const visible = layout.widgets.filter((w) => !w.hidden);
+  const columns: Record<ChannelRegion, WidgetInstance[]> = { left: [], center: [], right: [] };
+
+  for (const instance of visible) {
+    const manifest = WIDGETS[instance.id] as { channelRegion?: ChannelRegion };
+    const region = manifest.channelRegion ?? "right";
+    columns[region].push(instance);
+  }
+
+  return (
+    <div className={`mx-auto max-w-[1800px] px-5 py-6${editMode ? " layout-editing" : ""}`}>
+      <div className="frame frame-channels">
+        <div className="frame-inner frame-inner-channels">
+          <div className="channel-shell">
+            {CHANNEL_REGIONS.map((region) => (
+              <section key={region} className={`channel-column channel-column-${region}`}>
+                <div className="channel-stack">
+                  {columns[region].map((instance) => (
+                    <ChannelWidget key={instance.id} instance={instance} editMode={editMode} />
+                  ))}
+                </div>
+              </section>
+            ))}
+
+            <aside className="channel-rail" aria-label="companion rail">
+              <div className="channel-rail-card">
+                <div className="channel-rail-kicker">companion rail</div>
+                <div className="channel-rail-title">cat dock</div>
+                <p>
+                  The companion lives on the right edge in this mode, with more breathing room for status text and
+                  reactions.
+                </p>
+                <div className="channel-rail-meta">
+                  <span>{visible.length} live widgets</span>
+                  <span>{editMode ? "edit mode" : "locked layout"}</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Dashboard() {
+  const { layout } = useLayout();
+  return layout.layoutMode === "channels" ? <ChannelDashboard /> : <GridDashboard />;
 }
