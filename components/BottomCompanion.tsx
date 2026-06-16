@@ -1,40 +1,125 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, RadioTower, Sun, Wrench } from "lucide-react";
+import { CalendarDays, Dumbbell, Gamepad2, Music2, Moon, Sun } from "lucide-react";
 import { getServerThemeMode, getThemeMode, subscribeTheme } from "@/lib/theme";
 import { getPrefs, getServerPrefs, subscribePrefs } from "@/lib/prefs";
+import { getLifestyle, getServerLifestyle, subscribeLifestyle, type FootballEvent, weekdayKey, GYM_PLAN, isoDate } from "@/lib/lifestyle";
+import { usePolling } from "@/lib/usePolling";
+import type { NowPlaying as NowPlayingData } from "@/lib/spotify";
+import type { CurrentlyPlaying as CurrentlyPlayingData } from "@/lib/steam";
 
-const LINES = [
-  "dashboard stable",
-  "widgets synced",
-  "systems cozy",
-  "ready for trouble",
-];
+type FaceMode = "idle" | "blink" | "wink" | "talk";
+
+function useLifestyleStore() {
+  return useSyncExternalStore(subscribeLifestyle, getLifestyle, getServerLifestyle);
+}
+
+function eventStart(event: FootballEvent): Date {
+  return new Date(`${event.date}T${event.startTime}:00`);
+}
+
+function formatClock(value: string): string {
+  const [hours, mins] = value.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, mins, 0, 0);
+  return date.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" });
+}
 
 export function BottomCompanion() {
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
   const prefs = useSyncExternalStore(subscribePrefs, getPrefs, getServerPrefs);
+  const lifestyle = useLifestyleStore();
+  const { data: spotify } = usePolling<NowPlayingData>("/api/now-playing", 10_000);
+  const { data: steam } = usePolling<CurrentlyPlayingData>("/api/currently-playing", 15_000);
   const [open, setOpen] = useState(false);
-  const [moodIndex, setMoodIndex] = useState(0);
+  const [face, setFace] = useState<FaceMode>("idle");
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
+  const talkTimerRef = useRef<number | null>(null);
+
+  const today = new Date();
+  const todayIso = isoDate(today);
+  const todayPlanKey = weekdayKey(today);
+  const todayPlan = GYM_PLAN.find((day) => day.key === todayPlanKey) ?? GYM_PLAN[0];
+  const gymDone = lifestyle.gymCheckins[todayIso] === todayPlanKey;
+  const nextFootball = lifestyle.football
+    .filter((event) => !event.played && eventStart(event) >= today)
+    .sort((a, b) => eventStart(a).getTime() - eventStart(b).getTime())[0] ?? null;
+
+  const mood = useMemo(() => {
+    if (spotify?.isPlaying) return `listening: ${spotify.trackName}`;
+    if (steam?.status === "in-game") return `locked into ${steam.gameName}`;
+    if (nextFootball) return `next football ${formatClock(nextFootball.startTime)}`;
+    if (gymDone) return "gym split completed";
+    return "cat on dashboard duty";
+  }, [spotify, steam, nextFootball, gymDone]);
 
   const status = useMemo(() => {
-    const themeLabel = mode === "auto" ? "auto theme" : `${mode} theme`;
-    const pollingLabel = prefs.pollingEnabled ? "live polling on" : "live polling off";
-    const introLabel = prefs.bootSequence ? "boot intro armed" : "boot intro skipped";
-    return [themeLabel, pollingLabel, introLabel];
-  }, [mode, prefs]);
+    const themeLabel = mode === "dark" ? "night coat" : mode === "light" ? "day coat" : "auto coat";
+    const spotifyLabel = spotify?.isPlaying ? `${spotify.trackName} live on spotify` : "spotify idling";
+    const steamLabel = steam?.status === "in-game" ? `${steam.gameName} on steam` : "steam standing by";
+    const footballLabel = nextFootball
+      ? `football ${nextFootball.date} ${formatClock(nextFootball.startTime)}`
+      : "no football booked";
+    const gymLabel = gymDone ? `${todayPlan.focus} done` : `${todayPlan.focus} pending`;
+    const pollingLabel = prefs.pollingEnabled ? "live sync on" : "live sync paused";
+    return [themeLabel, spotifyLabel, steamLabel, footballLabel, gymLabel, pollingLabel];
+  }, [mode, spotify, steam, nextFootball, gymDone, todayPlan.focus, prefs.pollingEnabled]);
 
-  const mood = LINES[moodIndex % LINES.length];
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setFace((current) => {
+        if (current === "talk") return current;
+        return current === "idle" ? (Math.random() > 0.72 ? "wink" : "blink") : "idle";
+      });
+    }, 2600);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (talkTimerRef.current !== null) {
+        window.clearTimeout(talkTimerRef.current);
+      }
+    };
+  }, []);
 
   function toggleOpen() {
+    if (draggedRef.current) return;
+    if (talkTimerRef.current !== null) {
+      window.clearTimeout(talkTimerRef.current);
+    }
+    setFace("talk");
+    talkTimerRef.current = window.setTimeout(() => {
+      setFace("idle");
+      talkTimerRef.current = null;
+    }, 900);
     setOpen((current) => !current);
-    setMoodIndex((current) => current + 1);
+  }
+
+  function renderThemeIcon() {
+    return mode === "dark" ? <Moon size={12} strokeWidth={1.75} /> : <Sun size={12} strokeWidth={1.75} />;
   }
 
   return (
-    <div className="companion-wrap" aria-live="polite">
+    <motion.div
+      className="companion-wrap"
+      aria-live="polite"
+      drag
+      dragMomentum={false}
+      style={{ x: dragOffset.x, y: dragOffset.y }}
+      onDragStart={() => {
+        draggedRef.current = true;
+      }}
+      onDragEnd={(_event, info) => {
+        setDragOffset((current) => ({ x: current.x + info.offset.x, y: current.y + info.offset.y }));
+        window.setTimeout(() => {
+          draggedRef.current = false;
+        }, 120);
+      }}
+    >
       <AnimatePresence>
         {open && (
           <motion.div
@@ -44,49 +129,63 @@ export function BottomCompanion() {
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
           >
-            <div className="companion-bubble-kicker">nutpal status</div>
+            <div className="companion-bubble-kicker">nutcat status</div>
             <div className="companion-bubble-line">{mood}</div>
             <div className="companion-status-list">
               <div className="companion-status-item">
-                {mode === "dark" ? <Moon size={12} strokeWidth={1.75} /> : <Sun size={12} strokeWidth={1.75} />}
+                {renderThemeIcon()}
                 {status[0]}
               </div>
               <div className="companion-status-item">
-                <RadioTower size={12} strokeWidth={1.75} />
+                <Music2 size={12} strokeWidth={1.75} />
                 {status[1]}
               </div>
               <div className="companion-status-item">
-                <Wrench size={12} strokeWidth={1.75} />
+                <Gamepad2 size={12} strokeWidth={1.75} />
                 {status[2]}
               </div>
+              <div className="companion-status-item">
+                <CalendarDays size={12} strokeWidth={1.75} />
+                {status[3]}
+              </div>
+              <div className="companion-status-item">
+                <Dumbbell size={12} strokeWidth={1.75} />
+                {status[4]}
+              </div>
             </div>
+            <div className="companion-bubble-note">{status[5]}</div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <motion.button
         type="button"
-        className="companion-body"
+        className="companion-body companion-body-cat"
         onClick={toggleOpen}
-        aria-label={open ? "close companion status" : "open companion status"}
+        aria-label={open ? "close cat companion status" : "open cat companion status"}
         whileTap={{ scale: 0.96 }}
         animate={{ y: [0, -5, 0], rotate: [0, -1.5, 1.5, 0] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="companion-shadow" aria-hidden />
-        <div className="companion-head">
-          <div className="companion-eye" />
-          <div className="companion-eye" />
-          <div className="companion-mouth" />
+        <div className="cat-tail" aria-hidden />
+        <div className="cat-head">
+          <div className="cat-ear cat-ear-left" />
+          <div className="cat-ear cat-ear-right" />
+          <div className="cat-eye-wrap">
+            <div className={`cat-eye ${face === "blink" || face === "wink" ? "blink" : ""}`} />
+            <div className={`cat-eye ${face === "blink" ? "blink" : ""} ${face === "wink" ? "wink-open" : ""}`} />
+          </div>
+          <div className={`cat-mouth ${face === "talk" ? "talk" : ""}`} />
+          <div className="cat-whiskers cat-whiskers-left" />
+          <div className="cat-whiskers cat-whiskers-right" />
         </div>
-        <div className="companion-torso">
-          <div className="companion-badge" />
+        <div className="cat-torso">
+          <div className="cat-belly" />
+          <div className="cat-paw cat-paw-left" />
+          <div className="cat-paw cat-paw-right" />
         </div>
-        <div className="companion-arm companion-arm-left" />
-        <div className="companion-arm companion-arm-right" />
-        <div className="companion-leg companion-leg-left" />
-        <div className="companion-leg companion-leg-right" />
       </motion.button>
-    </div>
+    </motion.div>
   );
 }

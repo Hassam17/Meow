@@ -2893,6 +2893,12 @@ body {
   color: var(--text-primary);
 }
 
+.companion-bubble-note {
+  margin-top: 9px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
 .companion-status-list {
   display: grid;
   gap: 6px;
@@ -2920,6 +2926,11 @@ body {
   cursor: pointer;
 }
 
+.companion-body-cat {
+  width: 110px;
+  height: 126px;
+}
+
 .companion-shadow {
   position: absolute;
   left: 50%;
@@ -2931,105 +2942,174 @@ body {
   transform: translateX(-50%);
 }
 
-.companion-head {
+.cat-head {
   position: absolute;
-  top: 8px;
-  left: 17px;
-  width: 56px;
-  height: 48px;
+  top: 10px;
+  left: 20px;
+  width: 70px;
+  height: 54px;
   border: 1.5px solid var(--border);
-  border-radius: 18px 18px 15px 15px;
+  border-radius: 22px 22px 18px 18px;
   background: var(--bg-card);
   box-shadow: 3px 3px 0 var(--shadow);
 }
 
-.companion-eye {
+.cat-ear {
   position: absolute;
-  top: 15px;
-  width: 7px;
-  height: 7px;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  transform: rotate(45deg);
+}
+
+.cat-ear-left {
+  left: 8px;
+  border-radius: 5px 0 0 0;
+}
+
+.cat-ear-right {
+  right: 8px;
+  border-radius: 0 5px 0 0;
+}
+
+.cat-eye-wrap {
+  position: absolute;
+  top: 17px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cat-eye {
+  width: 8px;
+  height: 10px;
   border-radius: 999px;
   background: var(--accent-orange);
+  transform-origin: center;
+  transition: transform 0.14s ease, height 0.14s ease, opacity 0.14s ease;
 }
 
-.companion-eye:first-child {
-  left: 15px;
+.cat-eye.blink {
+  height: 2px;
+  transform: translateY(4px);
 }
 
-.companion-eye:nth-child(2) {
-  right: 15px;
+.cat-eye.wink-open {
+  opacity: 1;
 }
 
-.companion-mouth {
+.cat-mouth {
   position: absolute;
   left: 50%;
   bottom: 10px;
-  width: 18px;
-  height: 7px;
+  width: 16px;
+  height: 6px;
   border: 1.5px solid var(--border);
   border-top: 0;
   border-radius: 0 0 10px 10px;
   transform: translateX(-50%);
 }
 
-.companion-torso {
+.cat-mouth.talk {
+  width: 11px;
+  height: 10px;
+  border-top: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--accent-cyan);
+}
+
+.cat-whiskers {
   position: absolute;
-  top: 56px;
-  left: 23px;
-  width: 44px;
-  height: 34px;
+  top: 32px;
+  width: 16px;
+  height: 1px;
+  background: var(--border);
+}
+
+.cat-whiskers::before,
+.cat-whiskers::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 1px;
+  background: var(--border);
+}
+
+.cat-whiskers::before {
+  top: -5px;
+  transform: rotate(-8deg);
+}
+
+.cat-whiskers::after {
+  top: 5px;
+  transform: rotate(8deg);
+}
+
+.cat-whiskers-left {
+  left: -10px;
+}
+
+.cat-whiskers-right {
+  right: -10px;
+  transform: scaleX(-1);
+}
+
+.cat-torso {
+  position: absolute;
+  top: 64px;
+  left: 24px;
+  width: 62px;
+  height: 42px;
   border: 1.5px solid var(--border);
-  border-radius: 12px;
+  border-radius: 18px;
   background: var(--accent-cyan);
   box-shadow: 3px 3px 0 var(--shadow);
 }
 
-.companion-badge {
+.cat-belly {
   position: absolute;
-  top: 10px;
+  top: 8px;
   left: 50%;
-  width: 14px;
-  height: 14px;
+  width: 30px;
+  height: 22px;
   border-radius: 999px;
-  background: var(--badge-text);
+  background: color-mix(in srgb, var(--bg-card) 82%, white 18%);
   transform: translateX(-50%);
 }
 
-.companion-arm,
-.companion-leg {
+.cat-paw,
+.cat-tail {
   position: absolute;
   border-radius: 999px;
   background: var(--border);
 }
 
-.companion-arm {
-  top: 60px;
-  width: 10px;
-  height: 30px;
+.cat-paw {
+  bottom: -8px;
+  width: 14px;
+  height: 18px;
 }
 
-.companion-arm-left {
-  left: 16px;
-  transform: rotate(18deg);
+.cat-paw-left {
+  left: 12px;
 }
 
-.companion-arm-right {
-  right: 16px;
-  transform: rotate(-18deg);
+.cat-paw-right {
+  right: 12px;
 }
 
-.companion-leg {
-  top: 90px;
-  width: 10px;
-  height: 24px;
-}
-
-.companion-leg-left {
-  left: 31px;
-}
-
-.companion-leg-right {
-  right: 31px;
+.cat-tail {
+  top: 70px;
+  right: 2px;
+  width: 14px;
+  height: 46px;
+  border-radius: 18px;
+  transform: rotate(24deg);
+  transform-origin: top center;
 }
 
 @media (max-width: 700px) {
