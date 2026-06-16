@@ -48,7 +48,7 @@ let layout: LayoutState | null = null;
 let defaultLayout: LayoutState | null = null;
 
 function defaultLayoutMode(): LayoutMode {
-  return "channels";
+  return "grid";
 }
 
 export function defaultInstance(id: WidgetId): WidgetInstance {
