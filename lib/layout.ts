@@ -8,6 +8,7 @@ import {
   DEFAULT_ORDER,
   WIDGETS,
   resolveSettings,
+  type ChannelRegion,
   type ExpandDirection,
   type ExpandMode,
   type Orientation,
@@ -23,15 +24,24 @@ export type WidgetInstance = {
   orientation: Orientation;
   expand: ExpandMode;
   expandDirection: ExpandDirection;
+  channelRegion: ChannelRegion;
   hidden: boolean;
   settings: SettingsValues;
 };
 
 export type LayoutMode = "grid" | "channels";
 
+export type ChannelGridConfig = {
+  rows: number;
+  columns: number;
+};
+
+export type ChannelLayout = Record<ChannelRegion, ChannelGridConfig>;
+
 export type LayoutState = {
-  version: 3;
+  version: 4;
   layoutMode: LayoutMode;
+  channels: ChannelLayout;
   /** list order = grid placement order (dense auto-flow back-fills gaps) */
   widgets: WidgetInstance[];
 };
@@ -51,6 +61,19 @@ function defaultLayoutMode(): LayoutMode {
   return "grid";
 }
 
+function defaultChannels(): ChannelLayout {
+  const counts: Record<ChannelRegion, number> = { left: 0, center: 0, right: 0 };
+  for (const id of DEFAULT_ORDER) {
+    const region = WIDGETS[id].channelRegion ?? "right";
+    counts[region] += 1;
+  }
+  return {
+    left: { rows: Math.max(1, counts.left), columns: 1 },
+    center: { rows: Math.max(1, counts.center), columns: 1 },
+    right: { rows: Math.max(1, counts.right), columns: 1 },
+  };
+}
+
 export function defaultInstance(id: WidgetId): WidgetInstance {
   const manifest = WIDGETS[id];
   const defaults: WidgetManifest["defaults"] = manifest.defaults;
@@ -60,6 +83,7 @@ export function defaultInstance(id: WidgetId): WidgetInstance {
     orientation: defaults.orientation,
     expand: defaults.expand,
     expandDirection: "down",
+    channelRegion: manifest.channelRegion ?? "right",
     hidden: defaults.hidden ?? false,
     settings: resolveSettings(manifest),
   };
@@ -67,7 +91,12 @@ export function defaultInstance(id: WidgetId): WidgetInstance {
 
 function buildDefaultLayout(): LayoutState {
   if (!defaultLayout) {
-    defaultLayout = { version: 3, layoutMode: defaultLayoutMode(), widgets: DEFAULT_ORDER.map(defaultInstance) };
+    defaultLayout = {
+      version: 4,
+      layoutMode: defaultLayoutMode(),
+      channels: defaultChannels(),
+      widgets: DEFAULT_ORDER.map(defaultInstance),
+    };
   }
   return defaultLayout;
 }
@@ -105,6 +134,33 @@ function sanitizeLayoutMode(value: unknown): LayoutMode {
   return clamp(value, ["grid", "channels"] as const, defaultLayoutMode());
 }
 
+function sanitizeChannelValue(value: unknown, fallback: number, max: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.max(1, Math.min(max, Math.round(value)));
+}
+
+function sanitizeChannels(raw: unknown): ChannelLayout {
+  const fallback = defaultChannels();
+  const stored = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+
+  function regionConfig(region: ChannelRegion): ChannelGridConfig {
+    const item =
+      stored[region] && typeof stored[region] === "object" && !Array.isArray(stored[region])
+        ? (stored[region] as Record<string, unknown>)
+        : {};
+    return {
+      rows: sanitizeChannelValue(item.rows, fallback[region].rows, 12),
+      columns: sanitizeChannelValue(item.columns, fallback[region].columns, 3),
+    };
+  }
+
+  return {
+    left: regionConfig("left"),
+    center: regionConfig("center"),
+    right: regionConfig("right"),
+  };
+}
+
 /* a stored layout may predate widgets added since (or contain ids/values
    that no longer exist) — keep what's valid, fall back per-field to the
    manifest defaults, and append missing widgets so none can ever disappear */
@@ -128,6 +184,7 @@ function sanitize(raw: unknown): LayoutState | null {
             orientation: clamp(item.orientation, manifest.orientations, base.orientation),
             expand: clamp(item.expand, manifest.expandModes, base.expand),
             expandDirection: clamp(item.expandDirection, ["down", "up"] as const, "down"),
+            channelRegion: clamp(item.channelRegion, ["left", "center", "right"] as const, base.channelRegion),
             hidden: ALWAYS_VISIBLE.includes(id) ? false : typeof item.hidden === "boolean" ? item.hidden : base.hidden,
             settings: resolveSettings(
               manifest,
@@ -138,7 +195,7 @@ function sanitize(raw: unknown): LayoutState | null {
     );
   }
 
-  if ((stored.version === 2 || stored.version === 3) && Array.isArray(stored.widgets)) {
+  if ((stored.version === 2 || stored.version === 3 || stored.version === 4) && Array.isArray(stored.widgets)) {
     for (const item of stored.widgets) {
       if (!item || typeof item !== "object") continue;
       const id = (item as Record<string, unknown>).id;
@@ -155,7 +212,12 @@ function sanitize(raw: unknown): LayoutState | null {
     if (!seen.has(id)) push(id);
   }
 
-  return { version: 3, layoutMode: sanitizeLayoutMode(stored.layoutMode), widgets };
+  return {
+    version: 4,
+    layoutMode: sanitizeLayoutMode(stored.layoutMode),
+    channels: sanitizeChannels(stored.channels),
+    widgets,
+  };
 }
 
 export function getLayout(): LayoutState {
@@ -201,14 +263,15 @@ export function reorderWidget(activeId: WidgetId, overId: WidgetId) {
   const widgets = [...current.widgets];
   const [moved] = widgets.splice(from, 1);
   widgets.splice(to, 0, moved);
-  commit({ version: 3, layoutMode: current.layoutMode, widgets });
+  commit({ version: 4, layoutMode: current.layoutMode, channels: current.channels, widgets });
 }
 
 export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance, "id">>) {
   const current = getLayout();
   commit({
-    version: 3,
+    version: 4,
     layoutMode: current.layoutMode,
+    channels: current.channels,
     widgets: current.widgets.map((w) =>
       w.id === id ? { ...w, ...patch, settings: { ...w.settings, ...patch.settings } } : w,
     ),
@@ -218,7 +281,28 @@ export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance,
 export function setLayoutMode(layoutMode: LayoutMode) {
   const current = getLayout();
   if (current.layoutMode === layoutMode) return;
-  commit({ version: 3, layoutMode, widgets: current.widgets });
+  commit({ version: 4, layoutMode, channels: current.channels, widgets: current.widgets });
+}
+
+export function setChannelGrid(region: ChannelRegion, patch: Partial<ChannelGridConfig>) {
+  const current = getLayout();
+  const existing = current.channels[region];
+  commit({
+    version: 4,
+    layoutMode: current.layoutMode,
+    channels: {
+      ...current.channels,
+      [region]: {
+        rows: sanitizeChannelValue(patch.rows ?? existing.rows, existing.rows, 12),
+        columns: sanitizeChannelValue(patch.columns ?? existing.columns, existing.columns, 3),
+      },
+    },
+    widgets: current.widgets,
+  });
+}
+
+export function revealWidgetInRegion(id: WidgetId, region: ChannelRegion) {
+  updateInstance(id, { hidden: false, channelRegion: region });
 }
 
 export function resetLayout() {

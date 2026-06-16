@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarDays, Dumbbell, Gamepad2, Music2, Moon, Sun } from "lucide-react";
 import { getServerThemeMode, getThemeMode, subscribeTheme } from "@/lib/theme";
@@ -11,6 +11,11 @@ import type { NowPlaying as NowPlayingData } from "@/lib/spotify";
 import type { CurrentlyPlaying as CurrentlyPlayingData } from "@/lib/steam";
 
 type FaceMode = "idle" | "blink" | "wink" | "talk";
+
+type BottomCompanionProps = {
+  docked?: boolean;
+  boundsRef?: RefObject<HTMLElement | null>;
+};
 
 function useLifestyleStore() {
   return useSyncExternalStore(subscribeLifestyle, getLifestyle, getServerLifestyle);
@@ -27,7 +32,7 @@ function formatClock(value: string): string {
   return date.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" });
 }
 
-export function BottomCompanion() {
+export function BottomCompanion({ docked = false, boundsRef }: BottomCompanionProps) {
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
   const prefs = useSyncExternalStore(subscribePrefs, getPrefs, getServerPrefs);
   const lifestyle = useLifestyleStore();
@@ -35,9 +40,10 @@ export function BottomCompanion() {
   const { data: steam } = usePolling<CurrentlyPlayingData>("/api/currently-playing", 15_000);
   const [open, setOpen] = useState(false);
   const [face, setFace] = useState<FaceMode>("idle");
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const draggedRef = useRef(false);
   const talkTimerRef = useRef<number | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [dragOffset, setDragOffset] = useState(() => (docked ? { x: 12, y: 14 } : { x: 0, y: 0 }));
 
   const today = new Date();
   const todayIso = isoDate(today);
@@ -103,18 +109,30 @@ export function BottomCompanion() {
     return mode === "dark" ? <Moon size={12} strokeWidth={1.75} /> : <Sun size={12} strokeWidth={1.75} />;
   }
 
+  function clampOffset(nextX: number, nextY: number) {
+    if (!docked || !boundsRef?.current || !wrapRef.current) return { x: nextX, y: nextY };
+    const bounds = boundsRef.current.getBoundingClientRect();
+    const wrap = wrapRef.current.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(nextX, bounds.width - wrap.width)),
+      y: Math.max(0, Math.min(nextY, bounds.height - wrap.height)),
+    };
+  }
+
   return (
     <motion.div
-      className="companion-wrap"
+      ref={wrapRef}
+      className={`companion-wrap${docked ? " docked" : ""}`}
       aria-live="polite"
       drag
+      dragConstraints={docked ? boundsRef : undefined}
       dragMomentum={false}
       style={{ x: dragOffset.x, y: dragOffset.y }}
       onDragStart={() => {
         draggedRef.current = true;
       }}
       onDragEnd={(_event, info) => {
-        setDragOffset((current) => ({ x: current.x + info.offset.x, y: current.y + info.offset.y }));
+        setDragOffset((current) => clampOffset(current.x + info.offset.x, current.y + info.offset.y));
         window.setTimeout(() => {
           draggedRef.current = false;
         }, 120);

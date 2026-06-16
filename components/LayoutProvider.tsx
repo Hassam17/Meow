@@ -5,12 +5,15 @@ import {
   getLayout,
   getServerLayout,
   reorderWidget,
+  revealWidgetInRegion,
   resetLayout as resetLayoutStore,
+  setChannelGrid,
   setLayoutMode,
   subscribeLayout,
   updateInstance,
   type LayoutState,
 } from "@/lib/layout";
+import type { ChannelRegion, WidgetId } from "@/config/widgets";
 
 type LayoutContextValue = {
   layout: LayoutState;
@@ -18,6 +21,8 @@ type LayoutContextValue = {
   reorderWidget: typeof reorderWidget;
   updateInstance: typeof updateInstance;
   setLayoutMode: typeof setLayoutMode;
+  setChannelGrid: typeof setChannelGrid;
+  revealWidgetInRegion: (id: WidgetId, region: ChannelRegion) => void;
   editMode: boolean;
   startEdit: () => void;
   /** exit edit mode (the arrangement is already saved) */
@@ -42,6 +47,8 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         reorderWidget,
         updateInstance,
         setLayoutMode,
+        setChannelGrid,
+        revealWidgetInRegion,
         editMode,
         startEdit,
         lockLayout,
