@@ -9,7 +9,7 @@ const ICONS = { cyber: Sparkles, "football-manager": CircleDashed, "mission-cont
 
 export function ThemeToggle() {
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
-  const Icon = ICONS[mode];
+  const Icon = ICONS[mode as keyof typeof ICONS] ?? Sparkles;
   const next = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
 
   return (

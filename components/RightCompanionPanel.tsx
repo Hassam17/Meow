@@ -6,7 +6,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  Layers3,
   Palette,
   Plus,
   RefreshCw,
@@ -32,6 +31,7 @@ import {
   previewThemeMode,
   type ThemeMode,
 } from "@/lib/theme";
+import { CompanionDock } from "@/components/companions/CompanionDock";
 
 type PanelSection = "grid" | "theme" | "widget" | "layout" | "companion";
 
@@ -355,10 +355,7 @@ export function RightCompanionPanel() {
                   <span>Companion Width</span>
                   <input type="number" min={280} max={560} value={layout.grid.companionWidth} onChange={(e) => setGridConfig({ companionWidth: Number(e.target.value) })} />
                 </label>
-                <button type="button" className="right-settings-action" onClick={() => window.dispatchEvent(new CustomEvent("nutmag-open-assistant"))}>
-                  <Layers3 size={12} strokeWidth={1.8} />
-                  Open Assistant
-                </button>
+                <CompanionDock />
                 <button type="button" className="right-settings-action" onClick={() => persistCollapsed(true)}>
                   <X size={12} strokeWidth={1.8} />
                   Collapse Panel

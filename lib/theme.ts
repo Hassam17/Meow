@@ -17,7 +17,7 @@ const listeners = new Set<() => void>();
 
 export type ThemeMode = string;
 
-function cloneTheme(theme: ThemeDefinition): ThemeDefinition {
+function copyTheme(theme: ThemeDefinition): ThemeDefinition {
   return {
     ...theme,
     tokens: { ...theme.tokens },
@@ -73,7 +73,7 @@ function persistLibrary(themes: ThemeDefinition[]) {
 
 function makeThemeLibrary() {
   const custom = readStoredLibrary();
-  return [...BUILTIN_THEMES.map(cloneTheme), ...custom.map(cloneTheme)];
+  return [...BUILTIN_THEMES.map(copyTheme), ...custom.map(copyTheme)];
 }
 
 function resolveThemeId(value: unknown): string {
@@ -129,10 +129,12 @@ function normalizeThemeRecord(raw: unknown): ThemeDefinition | null {
   const label = typeof item.label === "string" && item.label.trim() ? item.label.trim() : null;
   const base = (id && getThemeById(id)) || BUILTIN_THEMES[0];
   if (!label) return null;
+  const baseId = id ?? createThemeId(label);
+  const uniqueId = ensureUniqueThemeId(baseId, getThemeLibrary());
   const swatch = sanitizeSwatch(item.swatch, base.swatch);
   const tokens = sanitizeTokens(item.tokens, base.tokens);
   return {
-    id: id ?? createThemeId(label),
+    id: uniqueId,
     label,
     swatch,
     tokens,
@@ -170,7 +172,15 @@ function ensureUniqueThemeId(baseId: string, library: ThemeDefinition[]) {
   return next;
 }
 
-function normalizeThemeDefinition(input: Partial<ThemeDefinition> & { label: string; tokens: Partial<ThemeTokens> }): ThemeDefinition {
+type ThemeDraft = {
+  id?: string;
+  label: string;
+  tokens: Partial<ThemeTokens>;
+  swatch?: [string, string, string];
+  description?: string;
+};
+
+function normalizeThemeDefinition(input: ThemeDraft): ThemeDefinition {
   const fallback = BUILTIN_THEMES[0];
   const idBase = typeof input.id === "string" && input.id.trim() ? input.id.trim() : createThemeId(input.label);
   const library = getThemeLibrary();
@@ -197,11 +207,11 @@ function applyThemeRecord(theme: ThemeDefinition) {
 }
 
 export function getThemeCatalog(): ThemeDefinition[] {
-  return getThemeLibrary().map(cloneTheme);
+  return getThemeLibrary().map(copyTheme);
 }
 
 export function getThemeDefinition(id: string): ThemeDefinition {
-  return cloneTheme(getThemeRecord(resolveThemeId(id)) ?? BUILTIN_THEMES[0]);
+  return copyTheme(getThemeRecord(resolveThemeId(id)) ?? BUILTIN_THEMES[0]);
 }
 
 export function getThemeMode(): ThemeMode {
@@ -294,4 +304,3 @@ export function subscribeTheme(listener: () => void) {
     listeners.delete(listener);
   };
 }
-
