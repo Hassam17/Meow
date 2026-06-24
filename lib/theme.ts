@@ -1,19 +1,13 @@
-// Shared theme store for the dashboard's visual modes. The selected theme
-// only changes CSS variables via <html data-theme="...">, so widgets keep
-// their business logic and inherit the active palette automatically.
-
 import { DEFAULT_THEME, isThemeId, type ThemeId } from "@/config/themes";
 
 const STORAGE_KEY = "nutmag-theme";
 const listeners = new Set<() => void>();
 
-function resolveStoredTheme(value: string | null): ThemeId {
-  if (isThemeId(value)) return value;
-  if (value === "auto") return DEFAULT_THEME;
-  return DEFAULT_THEME;
-}
-
 export type ThemeMode = ThemeId;
+
+function resolveStoredTheme(value: string | null): ThemeMode {
+  return isThemeId(value) ? value : DEFAULT_THEME;
+}
 
 export function getThemeMode(): ThemeMode {
   return resolveStoredTheme(localStorage.getItem(STORAGE_KEY));

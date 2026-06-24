@@ -63,7 +63,16 @@ export function BottomCompanion({ docked = false, boundsRef }: BottomCompanionPr
   }, [spotify, steam, nextFootball, gymDone]);
 
   const status = useMemo(() => {
-    const themeLabel = mode === "dark" ? "night coat" : mode === "light" ? "day coat" : "auto coat";
+    const themeLabel =
+      mode === "glass"
+        ? "glass coat"
+        : mode === "retro"
+          ? "retro coat"
+          : mode === "fifa"
+            ? "squad coat"
+            : mode === "mission-control"
+              ? "mission coat"
+              : "cyber coat";
     const spotifyLabel = spotify?.isPlaying ? `${spotify.trackName} live on spotify` : "spotify idling";
     const steamLabel = steam?.status === "in-game" ? `${steam.gameName} on steam` : "steam standing by";
     const footballLabel = nextFootball
@@ -106,7 +115,7 @@ export function BottomCompanion({ docked = false, boundsRef }: BottomCompanionPr
   }
 
   function renderThemeIcon() {
-    return mode === "dark" ? <Moon size={12} strokeWidth={1.75} /> : <Sun size={12} strokeWidth={1.75} />;
+    return mode === "glass" ? <Moon size={12} strokeWidth={1.75} /> : <Sun size={12} strokeWidth={1.75} />;
   }
 
   function clampOffset(nextX: number, nextY: number) {

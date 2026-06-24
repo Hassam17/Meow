@@ -6,7 +6,7 @@
 // render their data and read placement state through useWidget().
 
 import { useMemo, useRef, useState, type MouseEvent, type KeyboardEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   resolveSettings,
   type ExpandDirection,
@@ -18,6 +18,7 @@ import {
 } from "@/config/widgets";
 import { WidgetContext } from "@/components/framework/WidgetContext";
 import { WidgetOverlay } from "@/components/framework/WidgetOverlay";
+import { WidgetContainer } from "@/components/WidgetContainer";
 
 /** the per-instance slice the shell cares about; missing fields fall back
     to the manifest defaults */
@@ -93,15 +94,6 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
     [ctx, expanded],
   );
 
-  const blockClasses = [
-    "block",
-    flags.accent ? "accent-left" : "",
-    flags.className ?? "",
-    expand !== "none" ? "block-expandable" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
     <div
       id={manifest.id}
@@ -119,18 +111,23 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
           <Content />
         </WidgetContext.Provider>
       ) : (
-        <div className={blockClasses}>
-          {!flags.customHeader && (
-            <div className="block-label">
-              <Icon size={14} strokeWidth={1.75} />
-              {manifest.title}
-            </div>
-          )}
+        <WidgetContainer
+          title={manifest.title}
+          icon={Icon}
+          className={[
+            flags.accent ? "accent-left" : "",
+            flags.className ?? "",
+            expand !== "none" ? "block-expandable" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          interactive={expand !== "none"}
+          tabIndex={expand === "overlay" ? 0 : undefined}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+        >
           <WidgetContext.Provider value={contentCtx}>
             <Content />
-            {/* hover expansion lives inside the card — the animated height
-                grows the card, the grid row grows with it, and surrounding
-                widgets reflow to make room (the original capsule feel) */}
             {expand === "hover" && Expanded && (
               <AnimatePresence initial={false}>
                 {flyoutOpen && (
@@ -149,7 +146,7 @@ export function WidgetShell({ manifest, config }: { manifest: WidgetManifest; co
               </AnimatePresence>
             )}
           </WidgetContext.Provider>
-        </div>
+        </WidgetContainer>
       )}
 
       {expand === "overlay" && Expanded && (

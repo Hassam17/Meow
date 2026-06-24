@@ -1,7 +1,9 @@
 import { GlyphStrip } from "@/components/GlyphStrip";
 import { BootSequence } from "@/components/BootSequence";
 import { LayoutProvider } from "@/components/LayoutProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Dashboard } from "@/components/Dashboard";
+import { ChatWindow } from "@/components/chat/ChatWindow";
 
 export default function Home() {
   return (
@@ -11,9 +13,12 @@ export default function Home() {
 
       {/* columns + widget arrangement render from layout state — defaults in
           config/widgets.tsx, user overrides in localStorage["nutmag-layout"] */}
-      <LayoutProvider>
-        <Dashboard />
-      </LayoutProvider>
+      <ThemeProvider>
+        <LayoutProvider>
+          <Dashboard />
+          <ChatWindow />
+        </LayoutProvider>
+      </ThemeProvider>
     </main>
   );
 }

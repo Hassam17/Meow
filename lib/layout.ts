@@ -30,6 +30,7 @@ export type WidgetInstance = {
 };
 
 export type LayoutMode = "grid" | "channels";
+export type LayoutPreset = "productivity" | "football" | "gym" | "development";
 
 export type ChannelGridConfig = {
   rows: number;
@@ -39,8 +40,9 @@ export type ChannelGridConfig = {
 export type ChannelLayout = Record<ChannelRegion, ChannelGridConfig>;
 
 export type LayoutState = {
-  version: 4;
+  version: 5;
   layoutMode: LayoutMode;
+  preset: LayoutPreset;
   channels: ChannelLayout;
   /** list order = grid placement order (dense auto-flow back-fills gaps) */
   widgets: WidgetInstance[];
@@ -56,6 +58,13 @@ const ALWAYS_VISIBLE: string[] = ["hub-settings"];
 
 let layout: LayoutState | null = null;
 let defaultLayout: LayoutState | null = null;
+
+const PRESET_ORDERS: Record<LayoutPreset, WidgetId[]> = {
+  productivity: ["identity", "clock", "quicklinks", "github", "now-playing", "server-stats", "disk-storage", "network-stats", "hub-settings"],
+  football: ["identity", "football", "tracker", "clock", "quicklinks", "gym", "github", "hub-settings"],
+  gym: ["identity", "gym", "tracker", "clock", "quicklinks", "server-stats", "disk-storage", "hub-settings"],
+  development: ["identity", "github", "server-stats", "disk-storage", "network-stats", "arr-stack", "storage-apps", "now-playing", "hub-settings"],
+};
 
 function defaultLayoutMode(): LayoutMode {
   return "grid";
@@ -92,8 +101,9 @@ export function defaultInstance(id: WidgetId): WidgetInstance {
 function buildDefaultLayout(): LayoutState {
   if (!defaultLayout) {
     defaultLayout = {
-      version: 4,
+      version: 5,
       layoutMode: defaultLayoutMode(),
+      preset: "productivity",
       channels: defaultChannels(),
       widgets: DEFAULT_ORDER.map(defaultInstance),
     };
@@ -132,6 +142,10 @@ function clamp<T>(value: unknown, allowed: readonly T[], fallback: T): T {
 
 function sanitizeLayoutMode(value: unknown): LayoutMode {
   return clamp(value, ["grid", "channels"] as const, defaultLayoutMode());
+}
+
+function sanitizeLayoutPreset(value: unknown): LayoutPreset {
+  return clamp(value, ["productivity", "football", "gym", "development"] as const, "productivity");
 }
 
 function sanitizeChannelValue(value: unknown, fallback: number, max: number) {
@@ -195,7 +209,7 @@ function sanitize(raw: unknown): LayoutState | null {
     );
   }
 
-  if ((stored.version === 2 || stored.version === 3 || stored.version === 4) && Array.isArray(stored.widgets)) {
+  if ((stored.version === 2 || stored.version === 3 || stored.version === 4 || stored.version === 5) && Array.isArray(stored.widgets)) {
     for (const item of stored.widgets) {
       if (!item || typeof item !== "object") continue;
       const id = (item as Record<string, unknown>).id;
@@ -213,8 +227,9 @@ function sanitize(raw: unknown): LayoutState | null {
   }
 
   return {
-    version: 4,
+    version: 5,
     layoutMode: sanitizeLayoutMode(stored.layoutMode),
+    preset: sanitizeLayoutPreset(stored.preset),
     channels: sanitizeChannels(stored.channels),
     widgets,
   };
@@ -263,14 +278,15 @@ export function reorderWidget(activeId: WidgetId, overId: WidgetId) {
   const widgets = [...current.widgets];
   const [moved] = widgets.splice(from, 1);
   widgets.splice(to, 0, moved);
-  commit({ version: 4, layoutMode: current.layoutMode, channels: current.channels, widgets });
+  commit({ version: 5, layoutMode: current.layoutMode, preset: current.preset, channels: current.channels, widgets });
 }
 
 export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance, "id">>) {
   const current = getLayout();
   commit({
-    version: 4,
+    version: 5,
     layoutMode: current.layoutMode,
+    preset: current.preset,
     channels: current.channels,
     widgets: current.widgets.map((w) =>
       w.id === id ? { ...w, ...patch, settings: { ...w.settings, ...patch.settings } } : w,
@@ -281,15 +297,16 @@ export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance,
 export function setLayoutMode(layoutMode: LayoutMode) {
   const current = getLayout();
   if (current.layoutMode === layoutMode) return;
-  commit({ version: 4, layoutMode, channels: current.channels, widgets: current.widgets });
+  commit({ version: 5, layoutMode, preset: current.preset, channels: current.channels, widgets: current.widgets });
 }
 
 export function setChannelGrid(region: ChannelRegion, patch: Partial<ChannelGridConfig>) {
   const current = getLayout();
   const existing = current.channels[region];
   commit({
-    version: 4,
+    version: 5,
     layoutMode: current.layoutMode,
+    preset: current.preset,
     channels: {
       ...current.channels,
       [region]: {
@@ -303,6 +320,22 @@ export function setChannelGrid(region: ChannelRegion, patch: Partial<ChannelGrid
 
 export function revealWidgetInRegion(id: WidgetId, region: ChannelRegion) {
   updateInstance(id, { hidden: false, channelRegion: region });
+}
+
+export function setLayoutPreset(preset: LayoutPreset) {
+  const current = getLayout();
+  const order = PRESET_ORDERS[preset];
+  const widgets = [
+    ...order.map((id) => current.widgets.find((widget) => widget.id === id)).filter(Boolean) as WidgetInstance[],
+    ...current.widgets.filter((widget) => !order.includes(widget.id)),
+  ];
+  commit({
+    version: 5,
+    layoutMode: "grid",
+    preset,
+    channels: current.channels,
+    widgets,
+  });
 }
 
 export function resetLayout() {

@@ -5,7 +5,7 @@
 // the full panel: widget visibility checklist, global prefs, layout reset.
 
 import { useSyncExternalStore } from "react";
-import { Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sparkles, Sun, SunMoon } from "lucide-react";
+import { CircleDashed, Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sparkles, Sun, SunMoon } from "lucide-react";
 import { WIDGETS, DEFAULT_ORDER } from "@/config/widgets";
 import { THEME_PACKS } from "@/config/themes";
 import type { LayoutMode } from "@/lib/layout";
@@ -21,8 +21,9 @@ import { useLayout } from "@/components/LayoutProvider";
 
 const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
   { mode: "cyber", Icon: Sparkles },
-  { mode: "light", Icon: Sun },
-  { mode: "dark", Icon: Moon },
+  { mode: "fifa", Icon: CircleDashed },
+  { mode: "mission-control", Icon: Sun },
+  { mode: "glass", Icon: Moon },
   { mode: "retro", Icon: SunMoon },
 ];
 const LAYOUT_OPTIONS: LayoutMode[] = ["channels", "grid"];

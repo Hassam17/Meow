@@ -9,6 +9,7 @@ import {
   resetLayout as resetLayoutStore,
   setChannelGrid,
   setLayoutMode,
+  setLayoutPreset,
   subscribeLayout,
   updateInstance,
   type LayoutState,
@@ -21,6 +22,7 @@ type LayoutContextValue = {
   reorderWidget: typeof reorderWidget;
   updateInstance: typeof updateInstance;
   setLayoutMode: typeof setLayoutMode;
+  setLayoutPreset: typeof setLayoutPreset;
   setChannelGrid: typeof setChannelGrid;
   revealWidgetInRegion: (id: WidgetId, region: ChannelRegion) => void;
   editMode: boolean;
@@ -47,6 +49,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         reorderWidget,
         updateInstance,
         setLayoutMode,
+        setLayoutPreset,
         setChannelGrid,
         revealWidgetInRegion,
         editMode,
