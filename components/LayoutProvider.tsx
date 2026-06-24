@@ -4,10 +4,19 @@ import { createContext, useCallback, useContext, useState, useSyncExternalStore,
 import {
   getLayout,
   getServerLayout,
+  importLayout,
+  exportLayout,
   reorderWidget,
   revealWidgetInRegion,
   resetLayout as resetLayoutStore,
+  moveWidgetPlacement,
+  placeWidgetPlacement,
+  recoverLayout,
+  removeWidgetPlacement,
+  resizeWidgetPlacement,
   setChannelGrid,
+  setGridConfig,
+  setGridDebug,
   setLayoutMode,
   setLayoutPreset,
   subscribeLayout,
@@ -24,6 +33,15 @@ type LayoutContextValue = {
   setLayoutMode: typeof setLayoutMode;
   setLayoutPreset: typeof setLayoutPreset;
   setChannelGrid: typeof setChannelGrid;
+  setGridConfig: typeof setGridConfig;
+  setGridDebug: typeof setGridDebug;
+  placeWidgetPlacement: typeof placeWidgetPlacement;
+  moveWidgetPlacement: typeof moveWidgetPlacement;
+  resizeWidgetPlacement: typeof resizeWidgetPlacement;
+  removeWidgetPlacement: typeof removeWidgetPlacement;
+  recoverLayout: typeof recoverLayout;
+  exportLayout: typeof exportLayout;
+  importLayout: typeof importLayout;
   revealWidgetInRegion: (id: WidgetId, region: ChannelRegion) => void;
   editMode: boolean;
   startEdit: () => void;
@@ -51,6 +69,15 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         setLayoutMode,
         setLayoutPreset,
         setChannelGrid,
+        setGridConfig,
+        setGridDebug,
+        placeWidgetPlacement,
+        moveWidgetPlacement,
+        resizeWidgetPlacement,
+        removeWidgetPlacement,
+        recoverLayout,
+        exportLayout,
+        importLayout,
         revealWidgetInRegion,
         editMode,
         startEdit,

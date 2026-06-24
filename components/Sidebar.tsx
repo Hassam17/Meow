@@ -30,7 +30,11 @@ import { useLayout } from "@/components/LayoutProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { widgetRegistry } from "@/widgets/registry";
 import { setThemeMode, type ThemeMode } from "@/lib/theme";
-import { setLayoutPreset, setLayoutMode, type LayoutPreset, type LayoutMode } from "@/lib/layout";
+import {
+  exportLayout,
+  type LayoutPreset,
+  type LayoutMode,
+} from "@/lib/layout";
 
 const STORAGE_KEY = "nutmag-sidebar";
 
@@ -74,21 +78,40 @@ const NAV = [
   { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
-function readState(): SidebarState {
-  if (typeof window === "undefined") return { collapsed: false, search: "", paletteFilter: "", commandOpen: false };
+function defaultState(): SidebarState {
+  return { collapsed: false, search: "", paletteFilter: "", commandOpen: false };
+}
+
+function readStoredState(): Partial<SidebarState> | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { collapsed: false, search: "", paletteFilter: "", commandOpen: false };
-    return { collapsed: false, search: "", paletteFilter: "", commandOpen: false, ...(JSON.parse(raw) as Partial<SidebarState>) };
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SidebarState>;
+    return typeof parsed === "object" && parsed ? parsed : null;
   } catch {
-    return { collapsed: false, search: "", paletteFilter: "", commandOpen: false };
+    return null;
   }
 }
 
 export function DashboardSidebar() {
-  const { layout, updateInstance, reorderWidget, setLayoutPreset: applyPreset, setLayoutMode: applyMode, resetLayout } = useLayout();
+  const {
+    layout,
+    updateInstance,
+    reorderWidget,
+    setLayoutPreset: applyPreset,
+    setLayoutMode: applyMode,
+    setGridConfig: applyGridConfig,
+    setGridDebug: applyGridDebug,
+    resetLayout,
+  } = useLayout();
   const { theme } = useTheme();
-  const [state, setState] = useState<SidebarState>(() => readState());
+  const [state, setState] = useState<SidebarState>(defaultState);
+
+  useEffect(() => {
+    const stored = readStoredState();
+    if (stored) setState((current) => ({ ...current, ...stored }));
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -218,7 +241,7 @@ export function DashboardSidebar() {
               const enabled = current ? !current.hidden : widget.enabled;
               return (
                 <div key={widget.id} className={`sidebar-widget-item${enabled ? "" : " disabled"}`}>
-                  <button type="button" className="sidebar-widget-main" onClick={() => updateInstance(widget.id as WidgetId, { hidden: enabled })}>
+                  <button type="button" className="sidebar-widget-main" onClick={() => updateInstance(widget.id as WidgetId, { hidden: !enabled })}>
                     <span className="sidebar-widget-left">
                       {enabled ? <Eye size={12} strokeWidth={1.8} /> : <EyeOff size={12} strokeWidth={1.8} />}
                       {!state.collapsed && <span>{widget.title}</span>}
@@ -238,9 +261,52 @@ export function DashboardSidebar() {
               );
             })}
           </div>
-          <button type="button" className="sidebar-action" onClick={() => localStorage.setItem("nutmag-layout", JSON.stringify(layout))}>
+          <button type="button" className="sidebar-action" onClick={() => localStorage.setItem("nutmag-layout", exportLayout())}>
             <RefreshCw size={12} strokeWidth={1.8} />
             {!state.collapsed && "Save preferences"}
+          </button>
+        </section>
+
+        <section className="sidebar-section">
+          <div className="sidebar-section-title">
+            <LayoutGrid size={12} strokeWidth={1.8} />
+            {!state.collapsed && "Grid Generation"}
+          </div>
+          <div className="sidebar-grid-controls">
+            <label className="sidebar-grid-control">
+              <span>Rows</span>
+              <input
+                type="number"
+                min={4}
+                max={48}
+                value={layout.grid.rows}
+                onChange={(e) => applyGridConfig({ rows: Number(e.target.value) })}
+              />
+            </label>
+            <label className="sidebar-grid-control">
+              <span>Columns</span>
+              <input
+                type="number"
+                min={1}
+                max={24}
+                value={layout.grid.columns}
+                onChange={(e) => applyGridConfig({ columns: Number(e.target.value) })}
+              />
+            </label>
+            <label className="sidebar-grid-control">
+              <span>Gap</span>
+              <input
+                type="number"
+                min={0}
+                max={40}
+                value={layout.grid.gap}
+                onChange={(e) => applyGridConfig({ gap: Number(e.target.value) })}
+              />
+            </label>
+          </div>
+          <button type="button" className={`sidebar-action${layout.grid.debug ? " active" : ""}`} onClick={() => applyGridDebug(!layout.grid.debug)}>
+            <Eye size={12} strokeWidth={1.8} />
+            {!state.collapsed && (layout.grid.debug ? "Hide grid debug" : "Show grid debug")}
           </button>
         </section>
 

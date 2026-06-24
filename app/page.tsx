@@ -3,7 +3,6 @@ import { BootSequence } from "@/components/BootSequence";
 import { LayoutProvider } from "@/components/LayoutProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Dashboard } from "@/components/Dashboard";
-import { ChatWindow } from "@/components/chat/ChatWindow";
 
 export default function Home() {
   return (
@@ -16,7 +15,6 @@ export default function Home() {
       <ThemeProvider>
         <LayoutProvider>
           <Dashboard />
-          <ChatWindow />
         </LayoutProvider>
       </ThemeProvider>
     </main>

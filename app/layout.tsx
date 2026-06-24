@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
@@ -20,11 +21,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("nutmag-theme");var v=t==="cyber"||t==="fifa"||t==="mission-control"||t==="glass"||t==="retro"?t:"cyber";document.documentElement.dataset.theme=v;}catch(e){document.documentElement.dataset.theme="cyber";}})();`,
-          }}
-        />
+        <Script id="theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem("nutmag-theme");var v=t==="cyber"||t==="fifa"||t==="mission-control"||t==="glass"||t==="retro"?t:"cyber";document.documentElement.dataset.theme=v;}catch(e){document.documentElement.dataset.theme="cyber";}})();`}</Script>
       </head>
       <body
         className="min-h-full flex flex-col"

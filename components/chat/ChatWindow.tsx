@@ -79,10 +79,14 @@ function readStoredHistory(): AIMessage[] {
   }
 }
 
-function chatContext(layout: { layoutMode: string; widgets: Array<{ id: string; hidden: boolean }> }, theme: string): ChatContext {
+function chatContext(
+  layout: { layoutMode: string; grid: { rows: number; columns: number; gap: number; debug: boolean }; widgets: Array<{ id: string; hidden: boolean }> },
+  theme: string,
+): ChatContext {
   return {
     theme,
     layoutMode: layout.layoutMode,
+    grid: layout.grid,
     widgets: widgetRegistry.map((widget) => {
       const current = layout.widgets.find((entry) => entry.id === widget.id);
       return {

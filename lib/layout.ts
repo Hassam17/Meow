@@ -1,8 +1,6 @@
-// Shared layout store — a single ordered list of widget instances, each
-// carrying its grid placement config (size, orientation, expansion) and
-// widget-specific settings. Mirrors the lib/theme.ts external-store pattern:
-// the server renders the defaults, the client lazily reads the saved state
-// from localStorage["nutmag-layout"]. Every mutation persists immediately.
+// Shared layout store — widget instances + explicit grid placements.
+// The store persists immediately to localStorage["nutmag-layout"], and all
+// invalid/corrupt states are sanitized back into a recoverable layout.
 
 import {
   DEFAULT_ORDER,
@@ -17,6 +15,19 @@ import {
   type WidgetManifest,
   type WidgetSize,
 } from "@/config/widgets";
+import { widgetRegistry } from "@/widgets/registry";
+import {
+  autoPlace,
+  canPlace,
+  DEFAULT_GRID_CONFIG,
+  normalizeGridConfig,
+  normalizePlacement,
+  placeWidget as enginePlaceWidget,
+  removeWidget as engineRemoveWidget,
+  resizeWidget as engineResizeWidget,
+  type GridConfig,
+  type GridPlacement,
+} from "@/lib/gridEngine";
 
 export type WidgetInstance = {
   id: WidgetId;
@@ -40,21 +51,21 @@ export type ChannelGridConfig = {
 export type ChannelLayout = Record<ChannelRegion, ChannelGridConfig>;
 
 export type LayoutState = {
-  version: 5;
+  version: 6;
   layoutMode: LayoutMode;
   preset: LayoutPreset;
   channels: ChannelLayout;
-  /** list order = grid placement order (dense auto-flow back-fills gaps) */
+  grid: GridConfig;
   widgets: WidgetInstance[];
+  placements: Record<WidgetId, GridPlacement>;
 };
 
 const STORAGE_KEY = "nutmag-layout";
 const listeners = new Set<() => void>();
 const REMOVED_WIDGETS = new Set<WidgetId>(["homelab", "jellyfin"]);
-
-/* widgets the user must never lose access to (the framework's own controls
-   live here once the hub-settings widget exists) */
 const ALWAYS_VISIBLE: string[] = ["hub-settings"];
+
+const REGISTRY = new Map(widgetRegistry.map((entry) => [entry.id, entry] as const));
 
 let layout: LayoutState | null = null;
 let defaultLayout: LayoutState | null = null;
@@ -83,6 +94,27 @@ function defaultChannels(): ChannelLayout {
   };
 }
 
+function defaultGrid(): GridConfig {
+  return { ...DEFAULT_GRID_CONFIG, rows: 12, columns: 12, gap: 16, debug: false };
+}
+
+function defaultPlacementFor(id: WidgetId): GridPlacement {
+  const registry = REGISTRY.get(id);
+  return {
+    x: 0,
+    y: 0,
+    width: Math.max(1, registry?.width ?? 1),
+    height: Math.max(1, registry?.height ?? 1),
+  };
+}
+
+function buildDefaultPlacements(grid: GridConfig, order: WidgetId[]): Record<WidgetId, GridPlacement> {
+  return autoPlace(
+    grid,
+    order.map((id) => ({ id, size: defaultPlacementFor(id) })),
+  ) as Record<WidgetId, GridPlacement>;
+}
+
 export function defaultInstance(id: WidgetId): WidgetInstance {
   const manifest = WIDGETS[id];
   const defaults: WidgetManifest["defaults"] = manifest.defaults;
@@ -100,40 +132,18 @@ export function defaultInstance(id: WidgetId): WidgetInstance {
 
 function buildDefaultLayout(): LayoutState {
   if (!defaultLayout) {
+    const grid = defaultGrid();
     defaultLayout = {
-      version: 5,
+      version: 6,
       layoutMode: defaultLayoutMode(),
       preset: "productivity",
       channels: defaultChannels(),
+      grid,
       widgets: DEFAULT_ORDER.map(defaultInstance),
+      placements: buildDefaultPlacements(grid, DEFAULT_ORDER),
     };
   }
   return defaultLayout;
-}
-
-/* v1 layouts were Record<columnId, widgetId[]>; flatten them in the old
-   visual column order and expand the ids of the dissolved pair wrappers */
-const V1_COLUMN_ORDER = ["left", "services", "center", "tracker"];
-const V1_PAIR_IDS: Record<string, WidgetId[]> = {
-  media: ["now-playing", "currently-playing"],
-  "disk-network": ["disk-storage", "network-stats"],
-};
-
-function migrateV1(stored: Record<string, unknown>): WidgetId[] {
-  const order: WidgetId[] = [];
-  const keys = [...V1_COLUMN_ORDER, ...Object.keys(stored).filter((k) => !V1_COLUMN_ORDER.includes(k))];
-  for (const key of keys) {
-    const ids = stored[key];
-    if (!Array.isArray(ids)) continue;
-    for (const raw of ids) {
-      if (typeof raw !== "string") continue;
-      const expanded = V1_PAIR_IDS[raw] ?? (raw in WIDGETS ? [raw as WidgetId] : []);
-      for (const id of expanded) {
-        if (!order.includes(id)) order.push(id);
-      }
-    }
-  }
-  return order;
 }
 
 function clamp<T>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -175,15 +185,16 @@ function sanitizeChannels(raw: unknown): ChannelLayout {
   };
 }
 
-/* a stored layout may predate widgets added since (or contain ids/values
-   that no longer exist) — keep what's valid, fall back per-field to the
-   manifest defaults, and append missing widgets so none can ever disappear */
-function sanitize(raw: unknown): LayoutState | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const stored = raw as Record<string, unknown>;
+function sanitizeGrid(raw: unknown): GridConfig {
+  const fallback = defaultGrid();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return fallback;
+  return normalizeGridConfig(raw as Partial<GridConfig>, fallback);
+}
 
+function sanitizeWidgets(raw: unknown): WidgetInstance[] {
   const seen = new Set<WidgetId>();
   const widgets: WidgetInstance[] = [];
+  const stored = Array.isArray(raw) ? raw : [];
 
   function push(id: WidgetId, item?: Record<string, unknown>) {
     if (seen.has(id) || REMOVED_WIDGETS.has(id)) return;
@@ -209,29 +220,73 @@ function sanitize(raw: unknown): LayoutState | null {
     );
   }
 
-  if ((stored.version === 2 || stored.version === 3 || stored.version === 4 || stored.version === 5) && Array.isArray(stored.widgets)) {
-    for (const item of stored.widgets) {
+  if (stored.length > 0) {
+    for (const item of stored) {
       if (!item || typeof item !== "object") continue;
       const id = (item as Record<string, unknown>).id;
       if (typeof id === "string" && id in WIDGETS) push(id as WidgetId, item as Record<string, unknown>);
     }
-  } else if (stored.version === undefined) {
-    for (const id of migrateV1(stored)) push(id);
   } else {
-    return null;
+    for (const id of DEFAULT_ORDER) push(id);
   }
 
-  // anything registered since the layout was saved joins at the end
   for (const id of DEFAULT_ORDER) {
     if (!seen.has(id)) push(id);
   }
 
+  return widgets;
+}
+
+function sanitizePlacements(
+  raw: unknown,
+  grid: GridConfig,
+  widgets: WidgetInstance[],
+): Record<WidgetId, GridPlacement> {
+  const entries = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const placements: Record<WidgetId, GridPlacement> = {} as Record<WidgetId, GridPlacement>;
+  let needsRecovery = false;
+
+  for (const widget of widgets) {
+    const stored = entries[widget.id] && typeof entries[widget.id] === "object" ? (entries[widget.id] as Record<string, unknown>) : null;
+    const fallback = defaultPlacementFor(widget.id);
+    const candidate = normalizePlacement(
+      stored && typeof stored.x === "number" && typeof stored.y === "number" && typeof stored.width === "number" && typeof stored.height === "number"
+        ? ({ x: stored.x, y: stored.y, width: stored.width, height: stored.height } as GridPlacement)
+        : fallback,
+      grid,
+      fallback,
+    );
+
+    if (!canPlace(grid, placements, widget.id, candidate)) {
+      needsRecovery = true;
+      continue;
+    }
+
+    placements[widget.id] = candidate;
+  }
+
+  if (needsRecovery || Object.keys(placements).length !== widgets.length) {
+    return buildDefaultPlacements(grid, widgets.map((widget) => widget.id));
+  }
+
+  return placements;
+}
+
+function sanitize(raw: unknown): LayoutState | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const stored = raw as Record<string, unknown>;
+  const grid = sanitizeGrid(stored.grid);
+  const widgets = sanitizeWidgets(stored.widgets);
+  const placements = sanitizePlacements(stored.placements, grid, widgets);
+
   return {
-    version: 5,
+    version: 6,
     layoutMode: sanitizeLayoutMode(stored.layoutMode),
     preset: sanitizeLayoutPreset(stored.preset),
     channels: sanitizeChannels(stored.channels),
+    grid,
     widgets,
+    placements,
   };
 }
 
@@ -241,8 +296,8 @@ export function getLayout(): LayoutState {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const cleaned = sanitize(JSON.parse(raw));
-        if (cleaned) layout = cleaned;
+        const parsed = sanitize(JSON.parse(raw));
+        if (parsed) layout = parsed;
       }
     } catch {
       // corrupt saved layout — keep the default
@@ -269,25 +324,30 @@ function commit(next: LayoutState) {
   listeners.forEach((listener) => listener());
 }
 
-/** move `activeId` to `overId`'s position (dnd live reorder) */
+function currentState() {
+  return getLayout();
+}
+
+function commitPlacements(placements: Record<WidgetId, GridPlacement>) {
+  const current = currentState();
+  commit({ ...current, placements });
+}
+
 export function reorderWidget(activeId: WidgetId, overId: WidgetId) {
-  const current = getLayout();
+  const current = currentState();
   const from = current.widgets.findIndex((w) => w.id === activeId);
   const to = current.widgets.findIndex((w) => w.id === overId);
   if (from === -1 || to === -1 || from === to) return;
   const widgets = [...current.widgets];
   const [moved] = widgets.splice(from, 1);
   widgets.splice(to, 0, moved);
-  commit({ version: 5, layoutMode: current.layoutMode, preset: current.preset, channels: current.channels, widgets });
+  commit({ ...current, widgets });
 }
 
 export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance, "id">>) {
-  const current = getLayout();
+  const current = currentState();
   commit({
-    version: 5,
-    layoutMode: current.layoutMode,
-    preset: current.preset,
-    channels: current.channels,
+    ...current,
     widgets: current.widgets.map((w) =>
       w.id === id ? { ...w, ...patch, settings: { ...w.settings, ...patch.settings } } : w,
     ),
@@ -295,18 +355,33 @@ export function updateInstance(id: WidgetId, patch: Partial<Omit<WidgetInstance,
 }
 
 export function setLayoutMode(layoutMode: LayoutMode) {
-  const current = getLayout();
+  const current = currentState();
   if (current.layoutMode === layoutMode) return;
-  commit({ version: 5, layoutMode, preset: current.preset, channels: current.channels, widgets: current.widgets });
+  commit({ ...current, layoutMode });
+}
+
+export function setLayoutPreset(preset: LayoutPreset) {
+  const current = currentState();
+  const order = PRESET_ORDERS[preset];
+  const widgets = [
+    ...order.map((id) => current.widgets.find((widget) => widget.id === id)).filter(Boolean) as WidgetInstance[],
+    ...current.widgets.filter((widget) => !order.includes(widget.id)),
+  ];
+  const placements = buildDefaultPlacements(current.grid, widgets.map((widget) => widget.id));
+  commit({
+    ...current,
+    layoutMode: "grid",
+    preset,
+    widgets,
+    placements,
+  });
 }
 
 export function setChannelGrid(region: ChannelRegion, patch: Partial<ChannelGridConfig>) {
-  const current = getLayout();
+  const current = currentState();
   const existing = current.channels[region];
   commit({
-    version: 5,
-    layoutMode: current.layoutMode,
-    preset: current.preset,
+    ...current,
     channels: {
       ...current.channels,
       [region]: {
@@ -314,28 +389,74 @@ export function setChannelGrid(region: ChannelRegion, patch: Partial<ChannelGrid
         columns: sanitizeChannelValue(patch.columns ?? existing.columns, existing.columns, 3),
       },
     },
-    widgets: current.widgets,
   });
+}
+
+export function setGridConfig(patch: Partial<GridConfig>) {
+  const current = currentState();
+  const grid = normalizeGridConfig(patch, current.grid);
+  const placements = sanitizePlacements(current.placements, grid, current.widgets);
+  commit({ ...current, grid, placements });
+}
+
+export function setGridDebug(debug: boolean) {
+  setGridConfig({ debug });
+}
+
+export function placeWidgetPlacement(id: WidgetId, placement: GridPlacement) {
+  const current = currentState();
+  const outcome = enginePlaceWidget(current.grid, current.placements, id, placement);
+  if (outcome.ok) commitPlacements(outcome.placements as Record<WidgetId, GridPlacement>);
+  return outcome;
+}
+
+export function moveWidgetPlacement(id: WidgetId, position: { x: number; y: number }) {
+  const current = currentState();
+  const existing = current.placements[id];
+  if (!existing) return { ok: false, placements: current.placements, reason: "Missing widget placement" };
+  const outcome = enginePlaceWidget(current.grid, current.placements, id, { ...existing, x: position.x, y: position.y });
+  if (outcome.ok) commitPlacements(outcome.placements as Record<WidgetId, GridPlacement>);
+  return outcome;
+}
+
+export function resizeWidgetPlacement(
+  id: WidgetId,
+  nextSize: { width: number; height: number },
+  anchor: "top-left" | "top-right" | "bottom-left" | "bottom-right" = "top-left",
+) {
+  const current = currentState();
+  const outcome = engineResizeWidget(current.grid, current.placements, id, nextSize, anchor);
+  if (outcome.ok) commitPlacements(outcome.placements as Record<WidgetId, GridPlacement>);
+  return outcome;
+}
+
+export function removeWidgetPlacement(id: WidgetId) {
+  const current = currentState();
+  if (!current.placements[id]) return;
+  commitPlacements(engineRemoveWidget(current.placements, id) as Record<WidgetId, GridPlacement>);
 }
 
 export function revealWidgetInRegion(id: WidgetId, region: ChannelRegion) {
   updateInstance(id, { hidden: false, channelRegion: region });
 }
 
-export function setLayoutPreset(preset: LayoutPreset) {
-  const current = getLayout();
-  const order = PRESET_ORDERS[preset];
-  const widgets = [
-    ...order.map((id) => current.widgets.find((widget) => widget.id === id)).filter(Boolean) as WidgetInstance[],
-    ...current.widgets.filter((widget) => !order.includes(widget.id)),
-  ];
-  commit({
-    version: 5,
-    layoutMode: "grid",
-    preset,
-    channels: current.channels,
-    widgets,
-  });
+export function recoverLayout() {
+  const current = currentState();
+  const recovered = {
+    ...current,
+    placements: buildDefaultPlacements(current.grid, current.widgets.map((widget) => widget.id)),
+  };
+  commit(recovered);
+}
+
+export function exportLayout() {
+  return JSON.stringify(getLayout());
+}
+
+export function importLayout(raw: string) {
+  const parsed = sanitize(JSON.parse(raw));
+  if (!parsed) throw new Error("Invalid layout payload");
+  commit(parsed);
 }
 
 export function resetLayout() {

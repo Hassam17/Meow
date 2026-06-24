@@ -7,9 +7,8 @@
 import { useSyncExternalStore } from "react";
 
 const BREAKPOINTS: { minWidth: number; cols: number }[] = [
-  { minWidth: 1441, cols: 6 },
-  { minWidth: 1024, cols: 4 },
-  { minWidth: 641, cols: 2 },
+  { minWidth: 1024, cols: 12 },
+  { minWidth: 640, cols: 6 },
 ];
 
 function getColumns(): number {
@@ -26,5 +25,5 @@ function subscribe(listener: () => void) {
 }
 
 export function useGridColumns(): number {
-  return useSyncExternalStore(subscribe, getColumns, () => 6);
+  return useSyncExternalStore(subscribe, getColumns, () => 12);
 }

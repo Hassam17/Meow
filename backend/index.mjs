@@ -1,0 +1,13 @@
+export { EventBus } from "./event/EventBus.mjs";
+export { Grid } from "./domain/Grid.mjs";
+export { GridCell } from "./domain/GridCell.mjs";
+export { Widget } from "./domain/Widget.mjs";
+export { CompanionZone } from "./domain/CompanionZone.mjs";
+export { WidgetRegistry } from "./registry/WidgetRegistry.mjs";
+export { WidgetFactory } from "./factory/WidgetFactory.mjs";
+export { LayoutManager } from "./layout/LayoutManager.mjs";
+export { ThemeManager } from "./theme/ThemeManager.mjs";
+export { SettingsManager } from "./settings/SettingsManager.mjs";
+export { FirstFitPlacementStrategy, RecoveryPlacementStrategy } from "./strategy/PlacementStrategy.mjs";
+export * from "./core/constants.mjs";
+export * from "./core/errors.mjs";

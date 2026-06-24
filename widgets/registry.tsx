@@ -30,6 +30,8 @@ export type WidgetRegistryEntry = {
   id: string;
   title: string;
   size: WidgetSizePreset;
+  width: number;
+  height: number;
   enabled: boolean;
   component: ComponentType;
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -99,26 +101,33 @@ const MilestonesWidget = dynamic(() => import("@/components/UptimeMilestones").t
   loading: placeholder,
 });
 
+const SIZE_SPANS: Record<WidgetSizePreset, { width: number; height: number }> = {
+  small: { width: 1, height: 1 },
+  medium: { width: 2, height: 1 },
+  large: { width: 2, height: 2 },
+  wide: { width: 4, height: 2 },
+};
+
 export const widgetRegistry: WidgetRegistryEntry[] = [
-  { id: "identity", title: "Profile", size: "wide", enabled: true, component: IdentityWidget, icon: IdCard },
-  { id: "clock", title: "Clock", size: "medium", enabled: true, component: ClockWidget, icon: Clock },
-  { id: "quicklinks", title: "Quick Links", size: "medium", enabled: true, component: QuickLinksWidget, icon: Link2 },
-  { id: "milestones", title: "Uptime", size: "small", enabled: true, component: MilestonesWidget, icon: Trophy },
-  { id: "homelab", title: "Homelab", size: "medium", enabled: true, component: HomelabWidget, icon: Server },
-  { id: "server-stats", title: "Server Stats", size: "medium", enabled: true, component: ServerStatsWidget, icon: Cpu },
-  { id: "disk-storage", title: "Storage", size: "medium", enabled: true, component: DiskStorageWidget, icon: HardDrive },
-  { id: "network-stats", title: "Network", size: "medium", enabled: true, component: NetworkStatsWidget, icon: Network },
-  { id: "jellyfin", title: "Jellyfin", size: "medium", enabled: true, component: JellyfinWidget, icon: Grid2x2 },
-  { id: "arr-stack", title: "ARR Stack", size: "medium", enabled: true, component: ArrStackWidget, icon: Download },
-  { id: "storage-apps", title: "Storage Apps", size: "medium", enabled: true, component: StorageAppsWidget, icon: Database },
-  { id: "nutbot", title: "NutBot", size: "small", enabled: true, component: NutBotWidget, icon: SquareTerminal },
-  { id: "now-playing", title: "Now Playing", size: "wide", enabled: true, component: MusicWidget, icon: Music },
-  { id: "currently-playing", title: "Last Played", size: "wide", enabled: true, component: CurrentlyPlayingWidget, icon: Gamepad2 },
-  { id: "github", title: "GitHub", size: "wide", enabled: true, component: GithubWidget, icon: Github },
-  { id: "hub-settings", title: "Hub Settings", size: "medium", enabled: true, component: HubSettingsWidget, icon: SlidersHorizontal },
-  { id: "tracker", title: "Session Tracker", size: "medium", enabled: true, component: SessionWidget, icon: Sparkles },
-  { id: "football", title: "Football", size: "medium", enabled: true, component: FootballWidget, icon: Goal },
-  { id: "gym", title: "Gym", size: "medium", enabled: true, component: GymWidget, icon: Dumbbell },
+  { id: "identity", title: "Profile", size: "wide", ...SIZE_SPANS.wide, enabled: true, component: IdentityWidget, icon: IdCard },
+  { id: "clock", title: "Clock", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: ClockWidget, icon: Clock },
+  { id: "quicklinks", title: "Quick Links", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: QuickLinksWidget, icon: Link2 },
+  { id: "milestones", title: "Uptime", size: "small", ...SIZE_SPANS.small, enabled: true, component: MilestonesWidget, icon: Trophy },
+  { id: "homelab", title: "Homelab", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: HomelabWidget, icon: Server },
+  { id: "server-stats", title: "Server Stats", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: ServerStatsWidget, icon: Cpu },
+  { id: "disk-storage", title: "Storage", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: DiskStorageWidget, icon: HardDrive },
+  { id: "network-stats", title: "Network", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: NetworkStatsWidget, icon: Network },
+  { id: "jellyfin", title: "Jellyfin", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: JellyfinWidget, icon: Grid2x2 },
+  { id: "arr-stack", title: "ARR Stack", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: ArrStackWidget, icon: Download },
+  { id: "storage-apps", title: "Storage Apps", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: StorageAppsWidget, icon: Database },
+  { id: "nutbot", title: "NutBot", size: "small", ...SIZE_SPANS.small, enabled: true, component: NutBotWidget, icon: SquareTerminal },
+  { id: "now-playing", title: "Now Playing", size: "wide", ...SIZE_SPANS.wide, enabled: true, component: MusicWidget, icon: Music },
+  { id: "currently-playing", title: "Last Played", size: "wide", ...SIZE_SPANS.wide, enabled: true, component: CurrentlyPlayingWidget, icon: Gamepad2 },
+  { id: "github", title: "GitHub", size: "wide", ...SIZE_SPANS.wide, enabled: true, component: GithubWidget, icon: Github },
+  { id: "hub-settings", title: "Hub Settings", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: HubSettingsWidget, icon: SlidersHorizontal },
+  { id: "tracker", title: "Session Tracker", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: SessionWidget, icon: Sparkles },
+  { id: "football", title: "Football", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: FootballWidget, icon: Goal },
+  { id: "gym", title: "Gym", size: "medium", ...SIZE_SPANS.medium, enabled: true, component: GymWidget, icon: Dumbbell },
 ];
 
 export function registryById() {

@@ -12,6 +12,12 @@ export type ChatMessage = {
 export type ChatContext = {
   theme: string;
   layoutMode: string;
+  grid?: {
+    rows: number;
+    columns: number;
+    gap: number;
+    debug: boolean;
+  };
   widgets: Array<{
     id: string;
     title: string;
@@ -48,9 +54,12 @@ export function buildSystemPrompt(context: ChatContext) {
     "",
     `Theme: ${context.theme}`,
     `Layout: ${context.layoutMode}`,
+    context.grid ? `Grid: ${context.grid.columns} cols x ${context.grid.rows} rows, gap ${context.grid.gap}px${context.grid.debug ? " (debug on)" : ""}` : null,
     "Registered widgets:",
     widgets || "- none",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function createUserPayload(messages: ChatMessage[], context: ChatContext) {
