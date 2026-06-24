@@ -1,11 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Moon, Sun, SunMoon } from "lucide-react";
+import { Moon, Sparkles, Sun, SunMoon } from "lucide-react";
 import { getServerThemeMode, getThemeMode, setThemeMode, subscribeTheme, type ThemeMode } from "@/lib/theme";
 
-const ORDER: ThemeMode[] = ["light", "auto", "dark"];
-const ICONS = { light: Sun, auto: SunMoon, dark: Moon } as const;
+const ORDER: ThemeMode[] = ["cyber", "light", "dark", "retro"];
+const ICONS = { cyber: Sparkles, light: Sun, dark: Moon, retro: SunMoon } as const;
 
 export function ThemeToggle() {
   const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);

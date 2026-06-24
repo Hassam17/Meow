@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Moon, Pause, Play, Sun, SunMoon } from "lucide-react";
+import { Moon, Pause, Play, Sparkles, Sun, SunMoon } from "lucide-react";
 import {
   applyTheme,
   getServerThemeMode,
@@ -24,9 +24,10 @@ const MONTH_NAMES = [
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
+  { mode: "cyber", Icon: Sparkles },
   { mode: "light", Icon: Sun },
-  { mode: "auto", Icon: SunMoon },
   { mode: "dark", Icon: Moon },
+  { mode: "retro", Icon: SunMoon },
 ];
 
 function phaseFor(totalMins: number): { phase: string; color: string } {

@@ -1,67 +1,38 @@
-// Shared theme store — light / dark / auto mode (auto follows time of day)
-// plus the color palette pack. Backed by the same "nutmag-theme" /
-// "nutmag-palette" localStorage keys the pre-paint script in app/layout.tsx
-// reads, so there's no flash on load. Client-side only.
+// Shared theme store for the dashboard's visual modes. The selected theme
+// only changes CSS variables via <html data-theme="...">, so widgets keep
+// their business logic and inherit the active palette automatically.
 
-import { DEFAULT_PALETTE, isPaletteId, type PaletteId } from "@/config/themes";
-
-export type ThemeMode = "light" | "dark" | "auto";
+import { DEFAULT_THEME, isThemeId, type ThemeId } from "@/config/themes";
 
 const STORAGE_KEY = "nutmag-theme";
-const PALETTE_KEY = "nutmag-palette";
 const listeners = new Set<() => void>();
 
+function resolveStoredTheme(value: string | null): ThemeId {
+  if (isThemeId(value)) return value;
+  if (value === "auto") return DEFAULT_THEME;
+  return DEFAULT_THEME;
+}
+
+export type ThemeMode = ThemeId;
+
 export function getThemeMode(): ThemeMode {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === "light" || stored === "auto" ? stored : "dark";
+  return resolveStoredTheme(localStorage.getItem(STORAGE_KEY));
 }
 
 export function getServerThemeMode(): ThemeMode {
-  return "dark";
+  return DEFAULT_THEME;
 }
 
-function resolve(mode: ThemeMode): "light" | "dark" {
-  if (mode !== "auto") return mode;
-  const hour = new Date().getHours();
-  return hour >= 20 || hour < 6 ? "dark" : "light";
-}
-
-/** Apply the resolved theme to <html data-theme>. Cheap to call repeatedly —
- *  only touches the DOM when the resolved theme actually changes (auto mode
- *  flips at 06:00 / 20:00, so callers can re-run this on a timer). */
 export function applyTheme() {
-  const light = resolve(getThemeMode()) === "light";
-  const isLight = document.documentElement.dataset.theme === "light";
-  if (light && !isLight) {
-    document.documentElement.dataset.theme = "light";
-  } else if (!light && isLight) {
-    delete document.documentElement.dataset.theme;
+  const next = getThemeMode();
+  if (document.documentElement.dataset.theme !== next) {
+    document.documentElement.dataset.theme = next;
   }
 }
 
 export function setThemeMode(mode: ThemeMode) {
   localStorage.setItem(STORAGE_KEY, mode);
   applyTheme();
-  listeners.forEach((listener) => listener());
-}
-
-export function getPalette(): PaletteId {
-  const stored = localStorage.getItem(PALETTE_KEY);
-  return isPaletteId(stored) ? stored : DEFAULT_PALETTE;
-}
-
-export function getServerPalette(): PaletteId {
-  return DEFAULT_PALETTE;
-}
-
-export function setPalette(id: PaletteId) {
-  localStorage.setItem(PALETTE_KEY, id);
-  // the default palette is the attribute-less :root tokens
-  if (id === DEFAULT_PALETTE) {
-    delete document.documentElement.dataset.palette;
-  } else {
-    document.documentElement.dataset.palette = id;
-  }
   listeners.forEach((listener) => listener());
 }
 

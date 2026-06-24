@@ -5,16 +5,13 @@
 // the full panel: widget visibility checklist, global prefs, layout reset.
 
 import { useSyncExternalStore } from "react";
-import { Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sun, SunMoon } from "lucide-react";
+import { Eye, EyeOff, Moon, RotateCcw, SlidersHorizontal, Sparkles, Sun, SunMoon } from "lucide-react";
 import { WIDGETS, DEFAULT_ORDER } from "@/config/widgets";
 import { THEME_PACKS } from "@/config/themes";
 import type { LayoutMode } from "@/lib/layout";
 import {
-  getPalette,
-  getServerPalette,
   getServerThemeMode,
   getThemeMode,
-  setPalette,
   setThemeMode,
   subscribeTheme,
   type ThemeMode,
@@ -23,9 +20,10 @@ import { getPrefs, getServerPrefs, setPrefs, subscribePrefs } from "@/lib/prefs"
 import { useLayout } from "@/components/LayoutProvider";
 
 const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
+  { mode: "cyber", Icon: Sparkles },
   { mode: "light", Icon: Sun },
-  { mode: "auto", Icon: SunMoon },
   { mode: "dark", Icon: Moon },
+  { mode: "retro", Icon: SunMoon },
 ];
 const LAYOUT_OPTIONS: LayoutMode[] = ["channels", "grid"];
 
@@ -49,15 +47,15 @@ function ThemeModeRow() {
 }
 
 function PaletteRow() {
-  const palette = useSyncExternalStore(subscribeTheme, getPalette, getServerPalette);
+  const mode = useSyncExternalStore(subscribeTheme, getThemeMode, getServerThemeMode);
   return (
     <div className="palette-row">
       {THEME_PACKS.map((pack) => (
         <button
           key={pack.id}
           type="button"
-          className={`palette-btn${palette === pack.id ? " active" : ""}`}
-          onClick={() => setPalette(pack.id)}
+          className={`palette-btn${mode === pack.id ? " active" : ""}`}
+          onClick={() => setThemeMode(pack.id)}
           title={`${pack.label} palette`}
         >
           <span className="palette-swatch" style={{ background: pack.swatch[0] }}>
