@@ -133,3 +133,5 @@ export const widgetRegistry: WidgetRegistryEntry[] = [
 export function registryById() {
   return Object.fromEntries(widgetRegistry.map((entry) => [entry.id, entry])) as Record<string, WidgetRegistryEntry>;
 }
+
+export { frameworkWidgetRegistry, sampleWidgetComponents, sampleWidgetDefinitions } from "@/components/widgets/framework/sampleRegistry";

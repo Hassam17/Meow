@@ -68,11 +68,13 @@ export function BottomCompanion({ docked = false, boundsRef }: BottomCompanionPr
         ? "glass coat"
         : mode === "retro"
           ? "retro coat"
-          : mode === "fifa"
+          : mode === "football-manager"
             ? "squad coat"
             : mode === "mission-control"
               ? "mission coat"
-              : "cyber coat";
+              : mode === "minimal"
+                ? "minimal coat"
+                : "cyber coat";
     const spotifyLabel = spotify?.isPlaying ? `${spotify.trackName} live on spotify` : "spotify idling";
     const steamLabel = steam?.status === "in-game" ? `${steam.gameName} on steam` : "steam standing by";
     const footballLabel = nextFootball

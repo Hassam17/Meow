@@ -6,7 +6,12 @@ import {
   getServerLayout,
   importLayout,
   exportLayout,
+  saveLayoutSnapshot,
+  loadLayoutSnapshot,
   reorderWidget,
+  addWidgetInstance,
+  removeWidgetInstance,
+  setWidgetEnabled,
   revealWidgetInRegion,
   resetLayout as resetLayoutStore,
   moveWidgetPlacement,
@@ -42,6 +47,11 @@ type LayoutContextValue = {
   recoverLayout: typeof recoverLayout;
   exportLayout: typeof exportLayout;
   importLayout: typeof importLayout;
+  saveLayoutSnapshot: typeof saveLayoutSnapshot;
+  loadLayoutSnapshot: typeof loadLayoutSnapshot;
+  addWidgetInstance: typeof addWidgetInstance;
+  removeWidgetInstance: typeof removeWidgetInstance;
+  setWidgetEnabled: typeof setWidgetEnabled;
   revealWidgetInRegion: (id: WidgetId, region: ChannelRegion) => void;
   editMode: boolean;
   startEdit: () => void;
@@ -78,6 +88,11 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         recoverLayout,
         exportLayout,
         importLayout,
+        saveLayoutSnapshot,
+        loadLayoutSnapshot,
+        addWidgetInstance,
+        removeWidgetInstance,
+        setWidgetEnabled,
         revealWidgetInRegion,
         editMode,
         startEdit,

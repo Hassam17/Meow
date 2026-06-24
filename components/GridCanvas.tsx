@@ -75,10 +75,11 @@ function readMetrics(node: HTMLElement | null) {
   if (!node) return { cellWidth: 120, rowHeight: 128, gap: 16 };
   const style = getComputedStyle(node);
   const gap = parseFloat(style.getPropertyValue("--grid-gap")) || 16;
+  const padding = parseFloat(style.getPropertyValue("--grid-padding")) || 0;
   const rowHeight = parseFloat(style.getPropertyValue("--grid-row-height")) || 128;
   const columns = Number(style.getPropertyValue("--grid-columns")) || 12;
   const width = node.getBoundingClientRect().width;
-  const cellWidth = (width - gap * (columns - 1)) / Math.max(1, columns);
+  const cellWidth = (width - padding * 2 - gap * (columns - 1)) / Math.max(1, columns);
   return { cellWidth, rowHeight, gap };
 }
 
@@ -232,6 +233,7 @@ export function GridCanvas() {
             ["--grid-columns" as never]: columns,
             ["--grid-rows" as never]: rows,
             ["--grid-gap" as never]: `${layout.grid.gap}px`,
+            ["--grid-padding" as never]: `${layout.grid.padding}px`,
             ["--grid-row-height" as never]: `${metrics.rowHeight}px`,
           } as CSSProperties
         }

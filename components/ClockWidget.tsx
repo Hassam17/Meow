@@ -25,10 +25,11 @@ const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
   { mode: "cyber", Icon: Sparkles },
-  { mode: "fifa", Icon: CircleDashed },
+  { mode: "football-manager", Icon: CircleDashed },
   { mode: "mission-control", Icon: Sun },
   { mode: "glass", Icon: Moon },
   { mode: "retro", Icon: SunMoon },
+  { mode: "minimal", Icon: CircleDashed },
 ];
 
 function phaseFor(totalMins: number): { phase: string; color: string } {

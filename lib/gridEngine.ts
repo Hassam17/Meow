@@ -14,6 +14,7 @@ export type GridConfig = {
   rows: number;
   columns: number;
   gap: number;
+  padding: number;
   debug: boolean;
   companionWidth: number;
 };
@@ -38,6 +39,7 @@ export const DEFAULT_GRID_CONFIG: GridConfig = {
   rows: 10,
   columns: 12,
   gap: 16,
+  padding: 0,
   debug: false,
   companionWidth: 380,
 };
@@ -51,6 +53,8 @@ export function normalizeGridConfig(raw: Partial<GridConfig> | undefined, fallba
   const columns =
     typeof raw?.columns === "number" && Number.isFinite(raw.columns) ? Math.max(1, Math.round(raw.columns)) : fallback.columns;
   const gap = typeof raw?.gap === "number" && Number.isFinite(raw.gap) ? Math.max(0, Math.round(raw.gap)) : fallback.gap;
+  const padding =
+    typeof raw?.padding === "number" && Number.isFinite(raw.padding) ? Math.max(0, Math.round(raw.padding)) : fallback.padding;
   const companionWidth =
     typeof raw?.companionWidth === "number" && Number.isFinite(raw.companionWidth)
       ? Math.max(280, Math.round(raw.companionWidth))
@@ -59,6 +63,7 @@ export function normalizeGridConfig(raw: Partial<GridConfig> | undefined, fallba
     rows,
     columns,
     gap,
+    padding,
     debug: typeof raw?.debug === "boolean" ? raw.debug : fallback.debug,
     companionWidth,
   };
@@ -262,4 +267,3 @@ export function autoPlace(
 export function maxOccupiedRow(placements: Record<string, GridPlacement>) {
   return Object.values(placements).reduce((max, placement) => Math.max(max, placement.y + placement.height), 0);
 }
-

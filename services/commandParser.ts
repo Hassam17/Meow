@@ -41,7 +41,7 @@ export function parseCommand(input: string): CommandParseResult {
 
 export function buildCommandHelp(registry: WidgetRegistryEntry[]) {
   return [
-    "/theme [dark|light|cyber|retro]",
+    "/theme [cyber|retro|glass|football-manager|mission-control|minimal]",
     "/add-widget <id>",
     "/remove-widget <id>",
     "/show-widget <id>",

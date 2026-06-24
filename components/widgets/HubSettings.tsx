@@ -21,10 +21,11 @@ import { useLayout } from "@/components/LayoutProvider";
 
 const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof Sun }[] = [
   { mode: "cyber", Icon: Sparkles },
-  { mode: "fifa", Icon: CircleDashed },
+  { mode: "football-manager", Icon: CircleDashed },
   { mode: "mission-control", Icon: Sun },
   { mode: "glass", Icon: Moon },
   { mode: "retro", Icon: SunMoon },
+  { mode: "minimal", Icon: CircleDashed },
 ];
 const LAYOUT_OPTIONS: LayoutMode[] = ["channels", "grid"];
 

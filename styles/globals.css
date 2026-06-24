@@ -4455,6 +4455,7 @@ body {
   backdrop-filter: blur(20px);
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
   transition: width 300ms ease, transform 300ms ease;
+  overflow: hidden;
 }
 
 .right-companion-panel.collapsed {
@@ -4507,6 +4508,146 @@ body {
 
 .right-companion-mini {
   display: none;
+}
+
+.right-settings-shell {
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.right-settings-section {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+}
+
+.right-settings-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.right-settings-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.right-settings-field {
+  display: grid;
+  gap: 6px;
+}
+
+.right-settings-field span,
+.right-settings-meta {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.right-settings-field input,
+.right-settings-field select,
+.right-settings-import {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-nested) 96%, transparent);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.84rem;
+  outline: none;
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.right-settings-field input:focus,
+.right-settings-field select:focus,
+.right-settings-import:focus {
+  border-color: color-mix(in srgb, var(--accent-orange) 72%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-orange) 18%, transparent);
+}
+
+.right-settings-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.right-settings-action,
+.right-settings-theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-nested) 92%, transparent);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.right-settings-action:hover,
+.right-settings-theme:hover,
+.right-companion-toggle:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent-orange) 64%, transparent);
+  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.16);
+}
+
+.right-settings-action.active,
+.right-settings-theme.active {
+  border-color: color-mix(in srgb, var(--accent-orange) 76%, transparent);
+  background: color-mix(in srgb, var(--accent-orange) 12%, var(--bg-nested));
+}
+
+.right-settings-theme {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.right-settings-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.right-settings-swatch span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.right-settings-import {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .chat-window.embedded {
@@ -4586,6 +4727,16 @@ body {
     right: 8px;
     width: auto;
     height: min(46vh, 520px);
+  }
+
+  .right-settings-actions-row {
+    flex-direction: column;
+  }
+
+  .right-settings-action,
+  .right-settings-theme {
+    width: 100%;
+    justify-content: center;
   }
 }
 

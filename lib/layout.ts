@@ -95,7 +95,7 @@ function defaultChannels(): ChannelLayout {
 }
 
 function defaultGrid(): GridConfig {
-  return { ...DEFAULT_GRID_CONFIG, rows: 12, columns: 12, gap: 16, debug: false };
+  return { ...DEFAULT_GRID_CONFIG, rows: 12, columns: 12, gap: 16, padding: 16, debug: false };
 }
 
 function defaultPlacementFor(id: WidgetId): GridPlacement {
@@ -401,6 +401,65 @@ export function setGridConfig(patch: Partial<GridConfig>) {
 
 export function setGridDebug(debug: boolean) {
   setGridConfig({ debug });
+}
+
+export function saveLayoutSnapshot() {
+  const current = currentState();
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+  } catch {
+    // ignore
+  }
+  return exportLayout();
+}
+
+export function loadLayoutSnapshot() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return getLayout();
+    const parsed = sanitize(JSON.parse(raw));
+    if (parsed) {
+      commit(parsed);
+      return parsed;
+    }
+  } catch {
+    // fall back below
+  }
+  const current = buildDefaultLayout();
+  commit(current);
+  return current;
+}
+
+export function addWidgetInstance(id: WidgetId) {
+  const current = currentState();
+  const exists = current.widgets.find((widget) => widget.id === id);
+  if (exists) {
+    updateInstance(id, { hidden: false });
+    return;
+  }
+  const nextWidget = defaultInstance(id);
+  const widgets = [...current.widgets, nextWidget];
+  const placements = buildDefaultPlacements(current.grid, widgets.map((widget) => widget.id));
+  commit({ ...current, widgets, placements });
+}
+
+export function removeWidgetInstance(id: WidgetId) {
+  const current = currentState();
+  const widgets = current.widgets.filter((widget) => widget.id !== id);
+  const placements = Object.fromEntries(
+    Object.entries(current.placements).filter(([widgetId]) => widgetId !== id),
+  ) as Record<WidgetId, GridPlacement>;
+  commit({ ...current, widgets, placements });
+}
+
+export function setWidgetEnabled(id: WidgetId, enabled: boolean) {
+  const current = currentState();
+  const exists = current.widgets.some((widget) => widget.id === id);
+  if (!exists && enabled) {
+    addWidgetInstance(id);
+    return;
+  }
+  updateInstance(id, { hidden: !enabled });
 }
 
 export function placeWidgetPlacement(id: WidgetId, placement: GridPlacement) {

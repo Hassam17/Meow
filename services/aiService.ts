@@ -75,7 +75,7 @@ export function createUserPayload(messages: ChatMessage[], context: ChatContext)
 export function mockAssistantStream(prompt: string) {
   const chunks = [
     "I can help manage widgets, theme, and layout.\n\n",
-    "Try `/theme cyber` or `/hide-widget github`.\n\n",
+    "Try `/theme cyber` or `/theme football-manager` or `/hide-widget github`.\n\n",
     "Current request:\n",
     prompt,
   ];
