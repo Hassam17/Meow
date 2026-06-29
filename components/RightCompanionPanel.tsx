@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
   Download,
@@ -59,9 +59,9 @@ function readImportBuffer(): string {
 export function RightCompanionPanel() {
   const { layout, addWidgetInstance, removeWidgetInstance, setWidgetEnabled, setGridConfig, setGridDebug, resetLayout } = useLayout();
   const { theme, setTheme } = useTheme();
-  const [collapsed, setCollapsed] = useState<boolean>(() => readCollapsed());
+  const [collapsed, setCollapsed] = useState<boolean>(false);
   const [selectedWidget, setSelectedWidget] = useState<WidgetId>(widgetRegistry[0]?.id as WidgetId);
-  const [importValue, setImportValue] = useState<string>(() => readImportBuffer());
+  const [importValue, setImportValue] = useState<string>("");
   const [themeImportValue, setThemeImportValue] = useState<string>("");
   const [themeLabel, setThemeLabel] = useState<string>("");
   const [activeSections, setActiveSections] = useState<Record<PanelSection, boolean>>({
@@ -79,6 +79,11 @@ export function RightCompanionPanel() {
   const activeTheme = useMemo(() => getThemeDefinition(theme), [theme]);
 
   const selectedEnabled = layout.widgets.find((widget) => widget.id === currentWidget?.id && !widget.hidden) !== undefined;
+
+  useEffect(() => {
+    setCollapsed(readCollapsed());
+    setImportValue(readImportBuffer());
+  }, []);
 
   function persistCollapsed(next: boolean) {
     setCollapsed(next);
