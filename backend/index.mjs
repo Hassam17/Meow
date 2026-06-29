@@ -9,5 +9,6 @@ export { LayoutManager } from "./layout/LayoutManager.mjs";
 export { ThemeManager } from "./theme/ThemeManager.mjs";
 export { SettingsManager } from "./settings/SettingsManager.mjs";
 export { FirstFitPlacementStrategy, RecoveryPlacementStrategy } from "./strategy/PlacementStrategy.mjs";
+export { GridOS, createGridOS } from "./facade/GridOS.mjs";
 export * from "./core/constants.mjs";
 export * from "./core/errors.mjs";

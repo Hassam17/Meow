@@ -5,6 +5,12 @@ Currently Building/Stack Chips, live uptime stat, Homelab v2 host telemetry
 types) is done and verified. The items below are the loose ends that need
 real values from the user before things are fully live.
 
+Current shell note:
+
+- the live dashboard now defaults to a grid-only canvas
+- side-rail controls still exist in code as reusable modules, but they are not mounted in the default shell
+- the readable architecture map is now `ReadableSystemMap.excalidraw`
+
 ## 1. Real GitHub username (blocking — GitHub Activity is currently broken)
 
 `https://api.github.com/users/NutMag2469/events/public` returns `404` —

@@ -8,9 +8,10 @@ The app is designed as a modular dashboard rather than a fixed page. Widgets can
 
 Core areas currently covered:
 
-- layout-driven dashboard shell with left sidebar, main grid, and right companion rail
+- grid-first dashboard shell with the grid canvas as the default live surface
 - configurable widget framework with standalone widget boundaries
 - grid engine with move, resize, snap, collision detection, and layout persistence
+- backend facade with a single OS-style entry point
 - theme engine with CSS-variable token themes, custom theme import/export, create, clone, and preview
 - companion system with AI assistant, cat companion, pet companion, and notifications
 - Spotify now playing and playback controls
@@ -25,17 +26,17 @@ Core areas currently covered:
 
 The current build is a working dashboard shell with:
 
-- a collapsible left navigation / control sidebar
 - a configurable central grid canvas
-- a dedicated right-side settings and companion area
+- the side rails still exist in code as reusable modules, but they are not mounted by default
 - token-only theme switching across the entire dashboard
 - persistent layout, theme, and companion state in localStorage
 - widget-level error isolation and framework primitives
 
 The latest design pass is captured in:
 
-- [NewLayout.excalidraw](./NewLayout.excalidraw)
+- [ReadableSystemMap.excalidraw](./ReadableSystemMap.excalidraw)
 - [CurrentSystemLayout.excalidraw](./CurrentSystemLayout.excalidraw)
+- [NewLayout.excalidraw](./NewLayout.excalidraw)
 
 ## Tech Stack
 
@@ -130,6 +131,7 @@ npm run build
 
 ```text
 app/                    App Router pages and API routes
+backend/                Grid OS backend architecture and facade
 components/             Dashboard widgets and UI shell
 components/framework/   Widget framework primitives
 components/widgets/     Widget-specific wrappers
@@ -137,6 +139,7 @@ config/                 Widget registry, themes, and static configuration
 lib/                    State, polling, integrations, and shared utilities
 mock/                   Mock API data for local development
 scripts/                Development helper scripts
+docs/                   Readable UI and backend architecture notes
 styles/                 Global styling and design tokens
 public/                 Static assets
 ```
@@ -153,14 +156,15 @@ public/                 Static assets
 - Layout and widget preferences are persisted locally in the browser.
 - Some widgets remain in the codebase even when they are not part of the default dashboard layout.
 - The widget registry in `config/widgets.tsx` is the main entry point for adding, removing, or reconfiguring widgets.
-- The right rail now hosts the settings surface plus the companion system.
+- The default live shell is grid-only; sidebar and right-rail modules remain in the codebase as reusable components.
+- The backend facade is `backend/facade/GridOS.mjs`; use it as the single entry point for non-UI orchestration.
 - Theme changes are token-based only; widgets should not own theme styling.
 - The grid engine is the source of truth for placement and collision rules.
+- Use `docs/ui-shell.md`, `docs/backend-architecture.md`, and `docs/diagram-guide.md` for the simplified current-system view.
 
 ## Recent Changes
 
-- Split the dashboard into explicit left, center, and right regions
-- Added a right-side settings panel with grid, theme, widget, layout, and companion controls
-- Added a persistent companion runtime with multiple companion types and animations
-- Added a token-driven theme engine with custom theme workflows
-- Added an updated Excalidraw design artifact for the current system direction
+- Reduced the default dashboard shell to a grid-only canvas
+- Added a reusable backend facade and clearer backend architecture docs
+- Added a readable Excalidraw overview plus simplified guide diagrams
+- Added supporting docs for UI shell, backend architecture, and diagram reading order

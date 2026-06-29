@@ -326,6 +326,9 @@ Edit:
 - `app/page.tsx`
 - `components/BootSequence.tsx`
 - `components/IdentityBlock.tsx`
+- `components/Dashboard.tsx`
+- `components/GridCanvas.tsx`
+- `styles/globals.css`
 
 Use these for:
 
@@ -333,6 +336,13 @@ Use these for:
 - global shell structure
 - boot intro behavior
 - identity header content
+- grid-only dashboard framing
+- shell region changes
+
+Current note:
+
+- the default live shell is grid-only
+- `components/Sidebar.tsx` and `components/RightCompanionPanel.tsx` still exist as reusable modules, but they are not mounted by default
 
 ### 16. Change build or tooling behavior
 
