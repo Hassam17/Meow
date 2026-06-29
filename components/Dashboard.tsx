@@ -7,9 +7,12 @@ import { GridCanvas } from "@/components/GridCanvas";
 export function Dashboard() {
   return (
     <div className="dashboard-frame">
+      <div className="dashboard-canvas" aria-hidden="true" />
       <DashboardSidebar />
       <main className="dashboard-main">
-        <GridCanvas />
+        <div className="dashboard-main-surface">
+          <GridCanvas />
+        </div>
       </main>
       <RightCompanionPanel />
     </div>

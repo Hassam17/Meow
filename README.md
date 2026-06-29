@@ -8,7 +8,11 @@ The app is designed as a modular dashboard rather than a fixed page. Widgets can
 
 Core areas currently covered:
 
-- dashboard layout with configurable widgets
+- layout-driven dashboard shell with left sidebar, main grid, and right companion rail
+- configurable widget framework with standalone widget boundaries
+- grid engine with move, resize, snap, collision detection, and layout persistence
+- theme engine with CSS-variable token themes, custom theme import/export, create, clone, and preview
+- companion system with AI assistant, cat companion, pet companion, and notifications
 - Spotify now playing and playback controls
 - Steam activity and game library data
 - GitHub activity summaries
@@ -16,6 +20,22 @@ Core areas currently covered:
 - football session tracking
 - gym plan tracking
 - session tracking and local progress history
+
+## Current Status
+
+The current build is a working dashboard shell with:
+
+- a collapsible left navigation / control sidebar
+- a configurable central grid canvas
+- a dedicated right-side settings and companion area
+- token-only theme switching across the entire dashboard
+- persistent layout, theme, and companion state in localStorage
+- widget-level error isolation and framework primitives
+
+The latest design pass is captured in:
+
+- [NewLayout.excalidraw](./NewLayout.excalidraw)
+- [CurrentSystemLayout.excalidraw](./CurrentSystemLayout.excalidraw)
 
 ## Tech Stack
 
@@ -133,3 +153,14 @@ public/                 Static assets
 - Layout and widget preferences are persisted locally in the browser.
 - Some widgets remain in the codebase even when they are not part of the default dashboard layout.
 - The widget registry in `config/widgets.tsx` is the main entry point for adding, removing, or reconfiguring widgets.
+- The right rail now hosts the settings surface plus the companion system.
+- Theme changes are token-based only; widgets should not own theme styling.
+- The grid engine is the source of truth for placement and collision rules.
+
+## Recent Changes
+
+- Split the dashboard into explicit left, center, and right regions
+- Added a right-side settings panel with grid, theme, widget, layout, and companion controls
+- Added a persistent companion runtime with multiple companion types and animations
+- Added a token-driven theme engine with custom theme workflows
+- Added an updated Excalidraw design artifact for the current system direction

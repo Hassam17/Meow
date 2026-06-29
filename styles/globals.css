@@ -268,7 +268,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-jetbrains-mono), monospace;
   transition: background-color 0.3s ease, color 0.3s ease;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 * {
@@ -4193,8 +4193,36 @@ body {
 /* ─── shell regions ─────────────────────────────────────────── */
 
 .dashboard-frame {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
   min-height: 100vh;
+}
+
+.dashboard-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 24%),
+    radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 20%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 94%, white), var(--color-bg));
+  pointer-events: none;
+}
+
+.dashboard-canvas {
+  position: absolute;
+  inset: 16px;
+  border-radius: 32px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background:
+    linear-gradient(transparent 31px, color-mix(in srgb, var(--color-border) 22%, transparent) 32px),
+    linear-gradient(90deg, transparent 31px, color-mix(in srgb, var(--color-border) 22%, transparent) 32px),
+    color-mix(in srgb, var(--bg-page) 94%, var(--color-bg));
+  background-size: 32px 32px;
+  background-position: 0 0;
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .dashboard-sidebar {
@@ -4257,6 +4285,16 @@ body {
 .sidebar-subtitle {
   font-size: 0.72rem;
   color: var(--color-text-muted);
+}
+
+.sidebar-rail-note {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-nested) 88%, transparent);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .sidebar-collapse-btn {
@@ -4447,6 +4485,7 @@ body {
   width: 376px;
   z-index: 75;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--border);
@@ -4516,6 +4555,36 @@ body {
   gap: 10px;
   overflow: auto;
   padding-right: 2px;
+}
+
+.right-companion-zone {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-orange) 10%, transparent), transparent 36%),
+    color-mix(in srgb, var(--bg-card) 92%, transparent);
+}
+
+.right-companion-zone-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.right-companion-zone-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.right-companion-zone-note {
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
 .right-settings-section {
@@ -5233,16 +5302,36 @@ body {
 /* ─── grid engine shell ─────────────────────────────────────── */
 
 .dashboard-main {
-  margin-left: 332px;
-  margin-right: 408px;
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 332px;
+  right: 408px;
   width: auto;
   max-width: none;
-  padding: 24px 0 96px;
+  z-index: 10;
+  display: flex;
+  min-height: 0;
+  padding: 0;
+}
+
+.dashboard-main-surface {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
 }
 
 .grid-canvas {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
   gap: 16px;
+  padding: 0;
 }
 
 .grid-canvas-head {
@@ -5298,12 +5387,22 @@ body {
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   grid-auto-rows: var(--grid-row-height);
   gap: var(--grid-gap);
+  padding: var(--grid-padding);
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 28%),
+    radial-gradient(circle at 80% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 22%),
+    color-mix(in srgb, var(--color-card-soft) 76%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+  overflow: auto;
   min-height: calc(var(--grid-rows) * var(--grid-row-height) + (var(--grid-rows) - 1) * var(--grid-gap));
 }
 
 .grid-debug-layer {
   position: absolute;
-  inset: 0;
+  inset: var(--grid-padding);
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   grid-template-rows: repeat(var(--grid-rows), var(--grid-row-height));
@@ -5488,16 +5587,17 @@ body {
 
 @media (max-width: 1280px) {
   .dashboard-main {
-    margin-left: 304px;
-    margin-right: 16px;
+    left: 304px;
+    right: 16px;
   }
 }
 
 @media (max-width: 900px) {
   .dashboard-main {
-    margin-left: 16px;
-    margin-right: 16px;
-    padding-top: 100px;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
   }
 
   .grid-board {

@@ -31,9 +31,10 @@ import {
   previewThemeMode,
   type ThemeMode,
 } from "@/lib/theme";
+import { resetCompanion } from "@/lib/companion";
 import { CompanionDock } from "@/components/companions/CompanionDock";
 
-type PanelSection = "grid" | "theme" | "widget" | "layout" | "companion";
+type PanelSection = "grid" | "theme" | "widget" | "layout";
 
 const PANEL_STORAGE = "nutmag-settings-panel";
 
@@ -68,7 +69,6 @@ export function RightCompanionPanel() {
     theme: true,
     widget: true,
     layout: true,
-    companion: true,
   });
 
   const currentWidget = useMemo(
@@ -159,7 +159,8 @@ export function RightCompanionPanel() {
       </div>
 
       {!collapsed && (
-        <div className="right-settings-shell">
+        <>
+          <div className="right-settings-shell">
           <section className="right-settings-section">
             <button type="button" className="right-settings-section-head" onClick={() => toggleSection("grid")}>
               <span>Grid Settings</span>
@@ -344,26 +345,34 @@ export function RightCompanionPanel() {
             )}
           </section>
 
-          <section className="right-settings-section">
-            <button type="button" className="right-settings-section-head" onClick={() => toggleSection("companion")}>
-              <span>Companion Settings</span>
-              <span>{activeSections.companion ? "−" : "+"}</span>
-            </button>
-            {activeSections.companion && (
-              <div className="right-settings-grid">
-                <label className="right-settings-field">
-                  <span>Companion Width</span>
-                  <input type="number" min={280} max={560} value={layout.grid.companionWidth} onChange={(e) => setGridConfig({ companionWidth: Number(e.target.value) })} />
-                </label>
-                <CompanionDock />
-                <button type="button" className="right-settings-action" onClick={() => persistCollapsed(true)}>
-                  <X size={12} strokeWidth={1.8} />
-                  Collapse Panel
-                </button>
+          </div>
+
+          <section className="right-companion-zone">
+            <div className="right-companion-zone-head">
+              <div>
+                <div className="right-companion-kicker">Dedicated companion area</div>
+                <div className="right-companion-title">Companion Stage</div>
               </div>
-            )}
+              <button type="button" className="right-companion-toggle" onClick={() => resetCompanion()} aria-label="reset companion">
+                <X size={14} strokeWidth={1.9} />
+              </button>
+            </div>
+            <div className="right-companion-zone-meta">
+              <label className="right-settings-field">
+                <span>Companion Width</span>
+                <input
+                  type="number"
+                  min={280}
+                  max={560}
+                  value={layout.grid.companionWidth}
+                  onChange={(e) => setGridConfig({ companionWidth: Number(e.target.value) })}
+                />
+              </label>
+              <div className="right-companion-zone-note">Companion drag and animation state are isolated from grid settings.</div>
+            </div>
+            <CompanionDock />
           </section>
-        </div>
+        </>
       )}
     </aside>
   );
